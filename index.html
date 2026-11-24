@@ -65,39 +65,39 @@
   <header class="sticky top-0 z-30 bg-[#FFFDF9]/95 backdrop-blur border-b border-[#EADBC8]">
     <div class="max-w-[1120px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
       <!-- 左側：標題與即時主時鐘（自動偵測所在地時區） -->
-      <div class="flex flex-wrap items-center gap-3 sm:gap-4">
-        <h1 class="text-[15px] font-semibold tracking-tight text-[#382A23]">
+      <div class="flex flex-wrap items-center gap-2.5 sm:gap-4">
+        <h1 class="text-base sm:text-[15px] font-semibold tracking-tight text-[#382A23]">
           中南美出團監控
         </h1>
         <div class="h-4 w-px bg-[#EADBC8] hidden sm:block"></div>
-        <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-[#FDEBD6] border border-[#EADBC8] tabular-nums">
+        <div class="inline-flex items-center gap-2 sm:gap-2.5 px-3 sm:px-3.5 py-1.5 rounded-xl bg-[#FDEBD6] border border-[#EADBC8] tabular-nums">
           <span id="live-dot" class="w-2.5 h-2.5 rounded-full bg-[#CC5E3E] shrink-0"></span>
-          <span id="local-tz-label" class="text-xs font-semibold text-[#7A685E]">台北</span>
-          <span id="taipei-date-text" class="text-xs sm:text-sm font-semibold text-[#382A23]">----/--/-- (週-)</span>
-          <span id="taipei-time-text" class="text-base sm:text-lg font-bold tracking-tight text-[#CC5E3E] leading-none">--:--:--</span>
-          <span id="sim-badge" class="hidden px-1.5 py-0.5 rounded bg-[#FFFDF9] border border-[#EADBC8] text-[#CC5E3E] text-[11px] font-semibold">模擬中</span>
+          <span id="local-tz-label" class="text-sm sm:text-xs font-semibold text-[#7A685E]">台北</span>
+          <span id="taipei-date-text" class="text-sm font-semibold text-[#382A23]">----/--/-- (週-)</span>
+          <span id="taipei-time-text" class="text-lg font-bold tracking-tight text-[#CC5E3E] leading-none">--:--:--</span>
+          <span id="sim-badge" class="hidden px-1.5 py-0.5 rounded bg-[#FFFDF9] border border-[#EADBC8] text-[#CC5E3E] text-xs sm:text-[11px] font-semibold">模擬中</span>
         </div>
         <!-- 位於海外時才顯示的低調台北參考時間 -->
-        <div id="taipei-secondary-clock" class="hidden inline-flex items-center gap-1.5 text-xs text-[#A39287] tabular-nums">
+        <div id="taipei-secondary-clock" class="hidden inline-flex items-center gap-1.5 text-sm sm:text-xs text-[#A39287] tabular-nums">
           <span>台北</span>
           <span id="taipei-sec-text">--/-- --:--</span>
         </div>
       </div>
 
-      <!-- 右側：極簡篩選膠囊、時間模擬文字鈕、赤陶紅主按鈕 -->
+      <!-- 右側：極簡篩選膠囊、時間模擬文字鈕、雲端同步按鈕 -->
       <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
         <!-- 分段篩選器：進行中 / 全部 -->
-        <div id="filter-segment" class="inline-flex items-center p-0.5 rounded-full bg-[#FDEBD6] border border-[#EADBC8] text-xs">
+        <div id="filter-segment" class="inline-flex items-center p-0.5 rounded-full bg-[#FDEBD6] border border-[#EADBC8] text-sm sm:text-xs">
           <!-- JS 動態渲染 -->
         </div>
 
         <!-- 時間模擬文字按鈕 -->
-        <button id="toggle-sim-btn" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#7A685E] hover:text-[#382A23] hover:bg-[#FDEBD6]/70 transition cursor-pointer">
+        <button id="toggle-sim-btn" type="button" class="px-3 sm:px-2.5 py-1.5 rounded-lg text-sm sm:text-xs font-medium text-[#7A685E] hover:text-[#382A23] hover:bg-[#FDEBD6]/70 transition cursor-pointer">
           時間模擬
         </button>
 
         <!-- Google Drive 同步狀態與手動刷新按鈕 -->
-        <button id="sync-drive-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#214E57] bg-[#E8F5F7] border border-[#C2E5EA] hover:bg-[#C2E5EA]/70 transition cursor-pointer" title="立即從 Google Drive 同步最新行程與航班動態">
+        <button id="sync-drive-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm sm:text-xs font-medium text-[#214E57] bg-[#E8F5F7] border border-[#C2E5EA] hover:bg-[#C2E5EA]/70 transition cursor-pointer" title="立即從 Google Drive 同步最新行程與航班動態">
           <span id="sync-icon" class="inline-block">↻</span>
           <span id="sync-label">雲端同步</span>
         </button>
@@ -141,27 +141,27 @@
 
   <aside id="detail-drawer" class="fixed top-0 right-0 z-50 h-full w-full max-w-2xl translate-x-full bg-[#FFFDF9] border-l border-[#EADBC8] flex flex-col">
     <!-- 抽屜暖奶油表頭 -->
-    <div class="px-6 py-4 bg-[#FDEBD6] border-b border-[#EADBC8] flex items-start justify-between gap-4 shrink-0">
+    <div class="px-5 sm:px-6 py-4 bg-[#FDEBD6] border-b border-[#EADBC8] flex items-start justify-between gap-3 sm:gap-4 shrink-0">
       <div class="min-w-0">
         <div class="flex flex-wrap items-center gap-2">
           <span id="drawer-dot" class="w-2.5 h-2.5 rounded-full shrink-0"></span>
-          <h2 id="drawer-code" class="text-base font-semibold text-[#382A23] tracking-tight"></h2>
-          <span id="drawer-status" class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#FFFDF9] text-[#7A685E] border border-[#EADBC8]"></span>
+          <h2 id="drawer-code" class="text-lg sm:text-base font-semibold text-[#382A23] tracking-tight"></h2>
+          <span id="drawer-status" class="px-2.5 py-0.5 rounded-full text-xs sm:text-[11px] font-medium bg-[#FFFDF9] text-[#7A685E] border border-[#EADBC8]"></span>
         </div>
         <div class="flex items-center gap-2 mt-1.5">
-          <p id="drawer-subtitle" class="text-xs text-[#7A685E] truncate cursor-pointer hover:text-[#382A23]" title="點擊編輯團體路線名稱"></p>
-          <button id="drawer-edit-tour-btn" type="button" class="text-[11px] font-medium text-[#CC5E3E] hover:underline shrink-0 cursor-pointer">編輯資訊</button>
+          <p id="drawer-subtitle" class="text-sm sm:text-xs text-[#7A685E] truncate cursor-pointer hover:text-[#382A23]" title="點擊編輯團體路線名稱"></p>
+          <button id="drawer-edit-tour-btn" type="button" class="text-xs sm:text-[11px] font-medium text-[#CC5E3E] hover:underline shrink-0 cursor-pointer">編輯資訊</button>
         </div>
       </div>
 
       <div class="flex items-center gap-1.5 shrink-0">
-        <button id="drawer-toggle-add-btn" type="button" class="px-3 py-1.5 rounded-lg text-xs font-medium text-[#FFFDF9] bg-[#CC5E3E] hover:bg-[#B84F31] transition cursor-pointer">
+        <button id="drawer-toggle-add-btn" type="button" class="px-3 py-1.5 rounded-lg text-sm sm:text-xs font-medium text-[#FFFDF9] bg-[#CC5E3E] hover:bg-[#B84F31] transition cursor-pointer">
           ＋ 新增行程
         </button>
-        <button id="drawer-del-tour-btn" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#7A685E] hover:text-[#CC5E3E] hover:bg-[#FFFDF9]/70 transition cursor-pointer">
+        <button id="drawer-del-tour-btn" type="button" class="px-2.5 py-1.5 rounded-lg text-sm sm:text-xs font-medium text-[#7A685E] hover:text-[#CC5E3E] hover:bg-[#FFFDF9]/70 transition cursor-pointer">
           刪除
         </button>
-        <button id="drawer-close-btn" type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#7A685E] hover:text-[#382A23] hover:bg-[#FFFDF9]/70 transition cursor-pointer" aria-label="關閉">
+        <button id="drawer-close-btn" type="button" class="w-9 h-9 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-base sm:text-sm text-[#7A685E] hover:text-[#382A23] hover:bg-[#FFFDF9]/70 transition cursor-pointer" aria-label="關閉">
           ✕
         </button>
       </div>
@@ -306,15 +306,15 @@
       </div>
     </div>
 
-    <!-- 雙時區表頭 -->
-    <div class="px-6 py-2 bg-[#FBF1E4]/70 border-b border-[#EADBC8] grid grid-cols-12 gap-2 text-[11px] font-medium text-[#7A685E] shrink-0">
+    <!-- 雙時區表頭（手機版改為堆疊排版，僅於平板／桌機顯示三欄表頭） -->
+    <div class="hidden sm:grid px-6 py-2 bg-[#FBF1E4]/70 border-b border-[#EADBC8] grid-cols-12 gap-2 text-[11px] font-medium text-[#7A685E] shrink-0">
       <div class="col-span-3">當地時間</div>
       <div id="drawer-ref-tz-col" class="col-span-3">對應台北時間</div>
       <div class="col-span-6">行程與航班內容</div>
     </div>
 
     <!-- 抽屜行程列表 -->
-    <div id="drawer-timeline-body" class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+    <div id="drawer-timeline-body" class="flex-1 overflow-y-auto px-4 sm:px-6 py-5 space-y-6">
       <!-- JS 動態渲染 -->
     </div>
   </aside>
@@ -789,7 +789,7 @@
           activeSpecific.sort((a, b) => (priority[a.type] || 9) - (priority[b.type] || 9));
           currentEvent = activeSpecific[0];
         } else {
-          // 當地 09:00–18:00 且非午晚餐時段才顯示簡表今日大綱
+          // 當地 09:00–18:00 且非午晚餐時段才顯示今日大綱
           const activeOverview = computed.find(e => e.isOverview && baseMs >= e.startMs && baseMs <= e.endMs);
           if (activeOverview) {
             const loc = formatInTz(baseMs, activeOverview.startTz);
@@ -975,11 +975,11 @@
               if (c.isOverview) {
                 statusBoxHtml = `
                   <div class="mt-5 p-4 rounded-xl bg-[#E8F5F7] border-l-[3px] border-[#C2E5EA]">
-                    <div class="flex items-center justify-between text-xs text-[#214E57] mb-1.5">
-                      <span class="font-medium">今日大綱</span>
-                      <span class="text-[11px] opacity-80">${esc(c.startCity)}</span>
+                    <div class="flex items-center justify-between text-sm sm:text-xs text-[#214E57] mb-1.5">
+                      <span class="font-medium">今日大綱 (暫定)</span>
+                      <span class="text-xs sm:text-[11px] opacity-80">${esc(c.startCity)}</span>
                     </div>
-                    <p class="text-[15px] font-semibold text-[#382A23] leading-snug">${esc(c.title)}</p>
+                    <p class="text-base sm:text-[15px] font-semibold text-[#382A23] leading-snug">${esc(c.title)}</p>
                   </div>`;
               } else {
                 const isDelayed = c.flightStatus === 'delayed';
@@ -995,7 +995,7 @@
                     : c.type === 'boat' ? '遊船進行中' : c.type === 'meal' ? '用餐中' : '行程進行中';
 
                 const delayBadge = isAdjusted
-                  ? `<span class="px-1.5 py-0.5 rounded bg-[#CC5E3E] text-[#FFFDF9] text-[10px] font-semibold">${isDelayed && c.delayMinutes > 0 ? `延誤 ${formatDelayDelta(c.delayMinutes)}` : '改時'}</span>`
+                  ? `<span class="px-1.5 py-0.5 rounded bg-[#CC5E3E] text-[#FFFDF9] text-[11px] sm:text-[10px] font-semibold">${isDelayed && c.delayMinutes > 0 ? `延誤 ${formatDelayDelta(c.delayMinutes)}` : '改時'}</span>`
                   : '';
 
                 const timeRangeStr = c.endCity && c.endCity !== c.startCity
@@ -1009,7 +1009,7 @@
                 const pct = Math.min(100, Math.max(3, Math.round(((baseMs - c.startMs) / Math.max(1, c.endMs - c.startMs)) * 100)));
 
                 const flightQuickTools = (c.type === 'flight' || c.type === 'train') ? `
-                  <div class="mt-2 flex items-center justify-end gap-2.5 text-[11px]">
+                  <div class="mt-2.5 flex items-center justify-end gap-3 text-xs sm:text-[11px]">
                     ${lookup ? `<a href="${lookup.google}" target="_blank" rel="noopener noreferrer" data-stop-card="1" class="text-[#214E57] hover:text-[#CC5E3E] font-medium">查動態 ↗</a>` : ''}
                     <button type="button" data-card-delay-tour="${tour.id}" data-card-delay-item="${c.id}" class="text-[#CC5E3E] hover:underline font-medium cursor-pointer">${isAdjusted ? '修改延誤' : '延誤/改時'}</button>
                   </div>` : '';
@@ -1022,11 +1022,11 @@
 
                 statusBoxHtml = `
                   <div class="mt-5 p-4 rounded-xl ${boxBg} border-l-[3px]">
-                    <div class="flex flex-wrap items-center justify-between gap-1.5 text-xs ${isAdjusted ? 'text-[#CC5E3E]' : 'text-[#214E57]'} mb-1.5">
+                    <div class="flex flex-wrap items-center justify-between gap-1.5 text-sm sm:text-xs ${isAdjusted ? 'text-[#CC5E3E]' : 'text-[#214E57]'} mb-1.5">
                       <span class="inline-flex items-center gap-1.5 font-medium">${typeLabel} ${delayBadge}</span>
                       <span class="tabular-nums">${origTimeHtml}${esc(timeRangeStr)}</span>
                     </div>
-                    <p class="text-[15px] font-semibold text-[#382A23] leading-snug">${esc(c.title)}</p>
+                    <p class="text-base sm:text-[15px] font-semibold text-[#382A23] leading-snug">${esc(c.title)}</p>
                     <div class="mt-3 h-1.5 w-full rounded-full ${isAdjusted ? 'bg-[#CC5E3E]/20' : 'bg-[#C2E5EA]'} overflow-hidden">
                       <div class="h-full rounded-full ${isAdjusted ? 'bg-[#CC5E3E]' : 'bg-[#E29557]'}" style="width:${pct}%"></div>
                     </div>
@@ -1036,57 +1036,57 @@
             }
 
             // 下一項提醒與倒數
-            let nextHtml = `<span class="text-[#A39287]">無後續排程</span>`;
+            let nextHtml = `<span class="text-sm sm:text-xs text-[#A39287]">無後續排程</span>`;
             if (info.nextEvent) {
               const n = info.nextEvent;
               const remainMs = n.startMs - baseMs;
               const isSoon = remainMs <= 6 * 3600000;
               const nDelayed = n.flightStatus === 'delayed' || n.flightStatus === 'changed';
               const nDelayTag = nDelayed
-                ? `<span class="px-1 py-0.5 rounded bg-[#CC5E3E]/15 text-[#CC5E3E] text-[10px] font-semibold mr-1">${n.flightStatus === 'delayed' && n.delayMinutes > 0 ? `延誤 ${formatDelayDelta(n.delayMinutes)}` : '改時'}</span>`
+                ? `<span class="px-1.5 py-0.5 rounded bg-[#CC5E3E]/15 text-[#CC5E3E] text-[11px] sm:text-[10px] font-semibold mr-1">${n.flightStatus === 'delayed' && n.delayMinutes > 0 ? `延誤 ${formatDelayDelta(n.delayMinutes)}` : '改時'}</span>`
                 : '';
               const nFlt = n.type === 'flight' ? extractFlightCode(n.title) : '';
               const nLookup = getFlightLookupUrls(nFlt);
 
               nextHtml = `
                 <div class="flex items-baseline justify-between gap-3">
-                  <span class="text-xs text-[#7A685E] truncate">
+                  <span class="text-sm sm:text-xs text-[#7A685E] truncate">
                     下一項：${nDelayTag}<span class="tabular-nums">${n.date.slice(5).replace('-', '/')} ${n.start}</span> ${esc(n.title)}
                   </span>
-                  <span class="text-xs font-medium tabular-nums shrink-0 ${isSoon || nDelayed ? 'text-[#CC5E3E]' : 'text-[#E29557]'}">${formatDurationShort(remainMs)}後</span>
+                  <span class="text-sm sm:text-xs font-medium tabular-nums shrink-0 ${isSoon || nDelayed ? 'text-[#CC5E3E]' : 'text-[#E29557]'}">${formatDurationShort(remainMs)}後</span>
                 </div>
                 ${(n.type === 'flight' || n.type === 'train') ? `
-                  <div class="mt-1 flex items-center justify-end gap-2.5 text-[11px]">
+                  <div class="mt-1.5 flex items-center justify-end gap-3 text-xs sm:text-[11px]">
                     ${nLookup ? `<a href="${nLookup.google}" target="_blank" rel="noopener noreferrer" data-stop-card="1" class="text-[#214E57] hover:text-[#CC5E3E]">查動態 ↗</a>` : ''}
                     <button type="button" data-card-delay-tour="${tour.id}" data-card-delay-item="${n.id}" class="text-[#CC5E3E] hover:underline cursor-pointer">${nDelayed ? '修改延誤' : '延誤/改時'}</button>
                   </div>` : ''}`;
             }
 
             return `
-              <article data-open-tour="${tour.id}" class="group rounded-2xl bg-[#FFFDF9] border border-[#EADBC8] hover:border-[#E29557] p-6 transition-colors cursor-pointer flex flex-col justify-between">
+              <article data-open-tour="${tour.id}" class="group rounded-2xl bg-[#FFFDF9] border border-[#EADBC8] hover:border-[#E29557] p-5 sm:p-6 transition-colors cursor-pointer flex flex-col justify-between">
                 <div>
                   <!-- 1. 團號標題與天數膠囊 -->
                   <div class="flex items-start justify-between gap-3">
                     <div class="flex items-center gap-2 min-w-0">
                       <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:${getTourColor(tour.code)}"></span>
-                      <span class="text-sm font-semibold text-[#382A23] tracking-tight shrink-0">${esc(tour.code)}</span>
-                      ${tour.name ? `<span class="text-xs text-[#7A685E] truncate">· ${esc(tour.name)}</span>` : ''}
+                      <span class="text-base sm:text-sm font-semibold text-[#382A23] tracking-tight shrink-0">${esc(tour.code)}</span>
+                      ${tour.name ? `<span class="text-sm sm:text-xs text-[#7A685E] truncate">· ${esc(tour.name)}</span>` : ''}
                     </div>
-                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${badgeClass}">${esc(info.badgeText)}</span>
+                    <span class="px-2.5 py-0.5 rounded-full text-xs sm:text-[11px] font-medium shrink-0 ${badgeClass}">${esc(info.badgeText)}</span>
                   </div>
 
                   <!-- 2. 當地日期（大時鐘上方）與大時鐘、城市時差 -->
                   <div class="mt-5 flex items-end justify-between gap-4">
                     <div>
-                      <div class="text-[15px] font-semibold text-[#214E57] tabular-nums mb-1">${local.md} (${local.weekday})</div>
+                      <div class="text-base sm:text-[15px] font-semibold text-[#214E57] tabular-nums mb-1">${local.md} (${local.weekday})</div>
                       <div class="flex items-center gap-2.5">
-                        <span class="text-[42px] leading-none font-semibold tracking-tight text-[#382A23] tabular-nums">${local.hm}</span>
+                        <span class="text-[44px] sm:text-[42px] leading-none font-semibold tracking-tight text-[#382A23] tabular-nums">${local.hm}</span>
                         ${dayNightIcon}
                       </div>
                     </div>
                     <div class="text-right pb-0.5">
-                      <div class="text-sm font-semibold text-[#382A23]">${esc(info.currentCity)}</div>
-                      <div class="text-xs text-[#7A685E] mt-0.5 tabular-nums">${diffLabel}</div>
+                      <div class="text-base sm:text-sm font-semibold text-[#382A23]">${esc(info.currentCity)}</div>
+                      <div class="text-sm sm:text-xs text-[#7A685E] mt-0.5 tabular-nums">${diffLabel}</div>
                     </div>
                   </div>
 
@@ -1095,9 +1095,9 @@
                 </div>
 
                 <!-- 4. 底部下一項提醒與當晚住宿 -->
-                <div class="mt-5 pt-4 border-t border-[#EADBC8]/80 space-y-1.5">
+                <div class="mt-5 pt-4 border-t border-[#EADBC8]/80 space-y-2 sm:space-y-1.5">
                   ${nextHtml}
-                  <div class="flex items-center justify-between gap-3 text-xs">
+                  <div class="flex items-center justify-between gap-3 text-sm sm:text-xs">
                     <span class="text-[#A39287] truncate">${info.hotel ? `住宿：${esc(info.hotel)}` : ''}</span>
                     <span class="text-[#7A685E] group-hover:text-[#CC5E3E] font-medium shrink-0 transition-colors">完整時間軸 →</span>
                   </div>
@@ -1145,6 +1145,7 @@
 
         const baseMs = getNowMs();
         const userTz = getUserTz();
+        const userLabel = getUserTzLabel();
         const info = analyzeTour(tour, baseMs);
 
         document.getElementById('drawer-dot').style.backgroundColor = getTourColor(tour.code);
@@ -1188,6 +1189,7 @@
             const refEnd = formatInTz(e.endMs, userTz);
             const dayDiff = diffDaysIso(e.date, refStart.isoDate);
             const dayDiffTag = dayDiff > 0 ? `+${dayDiff}天` : dayDiff < 0 ? `${dayDiff}天` : '';
+            const refEndCrossDay = refEnd.isoDate !== refStart.isoDate ? '+1' : '';
 
             const fltCode = e.type === 'flight' ? extractFlightCode(e.title) : '';
             const lookup = getFlightLookupUrls(fltCode);
@@ -1197,20 +1199,21 @@
 
             const localTimeCol = e.isOverview
               ? `<div class="font-medium text-[#214E57]">今日大綱</div>
-                 <div class="text-[11px] text-[#A39287] mt-0.5">${esc(e.startCity)} · 09:00–18:00</div>`
+                 <div class="text-xs sm:text-[11px] text-[#A39287] mt-0.5">${esc(e.startCity)} · 09:00–18:00</div>`
               : `<div class="font-medium tabular-nums ${isAdjusted ? 'text-[#CC5E3E]' : 'text-[#382A23]'}">${e.start}–${e.end}${e.endDateOffset ? '+1' : ''}</div>
-                 ${isAdjusted && e.origStart ? `<div class="text-[10px] text-[#A39287] line-through tabular-nums">原 ${esc(e.origStart)}–${esc(e.origEnd)}</div>` : ''}
-                 <div class="text-[11px] text-[#A39287] mt-0.5">${esc(e.startCity)}${e.endCity && e.endCity !== e.startCity ? ` → ${esc(e.endCity)}` : ''}</div>`;
+                 ${isAdjusted && e.origStart ? `<div class="text-xs sm:text-[10px] text-[#A39287] line-through tabular-nums">原 ${esc(e.origStart)}–${esc(e.origEnd)}</div>` : ''}
+                 <div class="text-xs sm:text-[11px] text-[#A39287] mt-0.5">${esc(e.startCity)}${e.endCity && e.endCity !== e.startCity ? ` → ${esc(e.endCity)}` : ''}</div>`;
 
-            const refTimeCol = e.isOverview
-              ? `<div class="text-[11px] text-[#A39287]">09:00–18:00（跳過午晚餐）</div>`
-              : `<div class="tabular-nums ${isAdjusted ? 'text-[#CC5E3E] font-medium' : 'text-[#7A685E]'}">
-                   ${refStart.md} ${refStart.hm} ${dayDiffTag ? `<span class="text-[10px] text-[#CC5E3E] ml-0.5">${dayDiffTag}</span>` : ''}
-                 </div>
-                 <div class="text-[11px] text-[#A39287] tabular-nums mt-0.5">至 ${refEnd.hm}</div>`;
+            const refTimeCol = `
+              <div class="tabular-nums ${isAdjusted ? 'text-[#CC5E3E] font-medium' : 'text-[#7A685E]'}">
+                <span class="sm:hidden text-[#A39287] mr-1">${esc(userLabel)}</span>${refStart.hm}–${refEnd.hm}${refEndCrossDay}
+              </div>
+              <div class="text-xs sm:text-[11px] text-[#A39287] tabular-nums mt-0.5">
+                ${refStart.md}${dayDiffTag ? ` <span class="text-[#CC5E3E]">${dayDiffTag}</span>` : ''}${e.isOverview ? ' (暫定)' : ''}
+              </div>`;
 
             const actionBtnsHtml = `
-              <div class="flex items-center gap-2 shrink-0 text-[11px]">
+              <div class="flex items-center gap-3 sm:gap-2 shrink-0 text-xs sm:text-[11px]">
                 ${lookup ? `<a href="${lookup.google}" target="_blank" rel="noopener noreferrer" class="text-[#214E57] hover:text-[#CC5E3E]">查班機↗</a>` : ''}
                 ${(e.type === 'flight' || e.type === 'train') ? `<button type="button" data-delay-item="${e.id}" class="text-[#CC5E3E] hover:underline cursor-pointer">改時</button>` : ''}
                 <button type="button" data-edit-item="${e.id}" class="text-[#7A685E] hover:text-[#382A23] cursor-pointer">編輯</button>
@@ -1224,15 +1227,17 @@
                 : 'pl-3 pr-2';
 
             return `
-              <div class="py-2.5 grid grid-cols-12 gap-2 items-start text-xs ${rowHighlight} ${isPast ? 'opacity-55' : ''}">
-                <div class="col-span-3">${localTimeCol}</div>
-                <div class="col-span-3">${refTimeCol}</div>
-                <div class="col-span-6 flex items-start justify-between gap-2">
+              <div class="py-3 sm:py-2.5 flex flex-col sm:grid sm:grid-cols-12 gap-1.5 sm:gap-2 items-stretch sm:items-start text-sm sm:text-xs ${rowHighlight} ${isPast ? 'opacity-55' : ''}">
+                <div class="flex items-start justify-between gap-2 sm:contents">
+                  <div class="sm:col-span-3">${localTimeCol}</div>
+                  <div class="sm:col-span-3 text-right sm:text-left">${refTimeCol}</div>
+                </div>
+                <div class="sm:col-span-6 flex items-start justify-between gap-2 pt-1 sm:pt-0">
                   <div class="min-w-0">
                     <div class="font-medium text-[#382A23] leading-snug">
                       ${esc(e.title)}
-                      ${isCur && !e.isOverview ? `<span class="ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#CC5E3E] text-[#FFFDF9]">進行中</span>` : ''}
-                      ${delayTag ? `<span class="ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#CC5E3E]/15 text-[#CC5E3E] border border-[#CC5E3E]/30">${esc(delayTag)}</span>` : ''}
+                      ${isCur && !e.isOverview ? `<span class="ml-1 inline-block px-1.5 py-0.5 rounded text-[11px] sm:text-[10px] font-medium bg-[#CC5E3E] text-[#FFFDF9]">進行中</span>` : ''}
+                      ${delayTag ? `<span class="ml-1 inline-block px-1.5 py-0.5 rounded text-[11px] sm:text-[10px] font-medium bg-[#CC5E3E]/15 text-[#CC5E3E] border border-[#CC5E3E]/30">${esc(delayTag)}</span>` : ''}
                     </div>
                   </div>
                   ${actionBtnsHtml}
@@ -1244,10 +1249,10 @@
             <section>
               <div class="pb-2 mb-1 border-b border-[#EADBC8]">
                 <div class="flex items-baseline gap-2">
-                  <span class="text-xs font-semibold text-[#382A23]">Day ${dayNum}</span>
-                  <span class="text-xs text-[#7A685E] tabular-nums">${date.slice(5).replace('-', '/')}</span>
+                  <span class="text-sm sm:text-xs font-semibold text-[#382A23]">Day ${dayNum}</span>
+                  <span class="text-sm sm:text-xs text-[#7A685E] tabular-nums">${date.slice(5).replace('-', '/')}</span>
                 </div>
-                ${dayHotel ? `<div class="text-[11px] text-[#7A685E] mt-1">宿：${esc(dayHotel)}</div>` : ''}
+                ${dayHotel ? `<div class="text-xs sm:text-[11px] text-[#7A685E] mt-1">宿：${esc(dayHotel)}</div>` : ''}
               </div>
               <div class="divide-y divide-[#EADBC8]/50">
                 ${rowsHtml}
