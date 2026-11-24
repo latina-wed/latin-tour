@@ -1,0 +1,1692 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>中南美出團監控看板</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', '"Noto Sans TC"', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+          },
+          colors: {
+            cream: {
+              bg: '#FBF1E4',
+              soft: '#FDEBD6',
+              card: '#FFFDF9',
+              border: '#EADBC8',
+            },
+            aqua: {
+              soft: '#E8F5F7',
+              main: '#C2E5EA',
+              deep: '#214E57',
+            },
+            apricot: '#E29557',
+            terracotta: '#CC5E3E',
+            ink: {
+              main: '#382A23',
+              sub: '#7A685E',
+              muted: '#A39287',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <!-- Google Fonts: Inter + Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* 所有時鐘與日期維持等寬數字，避免跳動 */
+    .tabular-nums { font-variant-numeric: tabular-nums; }
+
+    /* 暖調極簡細捲軸 */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(163, 146, 135, 0.35); border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(122, 104, 94, 0.55); }
+
+    /* 抽屜滑出過渡 */
+    #detail-drawer { transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1); }
+  </style>
+</head>
+
+<body class="min-h-screen bg-[#FBF1E4] text-[#382A23] antialiased selection:bg-[#C2E5EA] selection:text-[#214E57]">
+  <!-- ==================== 1. 極簡頂部列 ==================== -->
+  <header class="sticky top-0 z-30 bg-[#FFFDF9]/95 backdrop-blur border-b border-[#EADBC8]">
+    <div class="max-w-[1120px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <!-- 左側：標題與即時主時鐘（自動偵測所在地時區） -->
+      <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+        <h1 class="text-[15px] font-semibold tracking-tight text-[#382A23]">
+          中南美出團監控
+        </h1>
+        <div class="h-4 w-px bg-[#EADBC8] hidden sm:block"></div>
+        <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-[#FDEBD6] border border-[#EADBC8] tabular-nums">
+          <span id="live-dot" class="w-2.5 h-2.5 rounded-full bg-[#CC5E3E] shrink-0"></span>
+          <span id="local-tz-label" class="text-xs font-semibold text-[#7A685E]">台北</span>
+          <span id="taipei-date-text" class="text-xs sm:text-sm font-semibold text-[#382A23]">----/--/-- (週-)</span>
+          <span id="taipei-time-text" class="text-base sm:text-lg font-bold tracking-tight text-[#CC5E3E] leading-none">--:--:--</span>
+          <span id="sim-badge" class="hidden px-1.5 py-0.5 rounded bg-[#FFFDF9] border border-[#EADBC8] text-[#CC5E3E] text-[11px] font-semibold">模擬中</span>
+        </div>
+        <!-- 位於海外時才顯示的低調台北參考時間 -->
+        <div id="taipei-secondary-clock" class="hidden inline-flex items-center gap-1.5 text-xs text-[#A39287] tabular-nums">
+          <span>台北</span>
+          <span id="taipei-sec-text">--/-- --:--</span>
+        </div>
+      </div>
+
+      <!-- 右側：極簡篩選膠囊、時間模擬文字鈕、赤陶紅主按鈕 -->
+      <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
+        <!-- 分段篩選器：進行中 / 全部 -->
+        <div id="filter-segment" class="inline-flex items-center p-0.5 rounded-full bg-[#FDEBD6] border border-[#EADBC8] text-xs">
+          <!-- JS 動態渲染 -->
+        </div>
+
+        <!-- 時間模擬文字按鈕 -->
+        <button id="toggle-sim-btn" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#7A685E] hover:text-[#382A23] hover:bg-[#FDEBD6]/70 transition cursor-pointer">
+          時間模擬
+        </button>
+
+        <!-- Google Drive 同步狀態與手動刷新按鈕 -->
+        <button id="sync-drive-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-[#214E57] bg-[#E8F5F7] border border-[#C2E5EA] hover:bg-[#C2E5EA]/70 transition cursor-pointer" title="立即從 Google Drive 同步最新行程與航班動態">
+          <span id="sync-icon" class="inline-block">↻</span>
+          <span id="sync-label">雲端同步</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==================== 2. 收合式時間模擬列（預設隱藏） ==================== -->
+    <div id="simulator-strip" class="hidden border-t border-[#C2E5EA] bg-[#E8F5F7]">
+      <div class="max-w-[1120px] mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <span id="sim-tz-label" class="text-[#214E57] font-medium">台北基準時間</span>
+          <input id="sim-datetime-input" type="datetime-local" class="px-2.5 py-1 rounded-lg bg-[#FFFDF9] border border-[#C2E5EA] text-[#382A23] tabular-nums focus:outline-none focus:border-[#E29557]" />
+          <div class="inline-flex items-center rounded-lg border border-[#C2E5EA] bg-[#FFFDF9] overflow-hidden divide-x divide-[#C2E5EA]">
+            <button type="button" data-step="-6" class="px-2 py-1 text-[#214E57] hover:bg-[#C2E5EA]/40 transition cursor-pointer">-6h</button>
+            <button type="button" data-step="-1" class="px-2 py-1 text-[#214E57] hover:bg-[#C2E5EA]/40 transition cursor-pointer">-1h</button>
+            <button type="button" data-step="1"  class="px-2 py-1 text-[#214E57] hover:bg-[#C2E5EA]/40 transition cursor-pointer">+1h</button>
+            <button type="button" data-step="6"  class="px-2 py-1 text-[#214E57] hover:bg-[#C2E5EA]/40 transition cursor-pointer">+6h</button>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-[#214E57] font-medium">所在地時區</span>
+          <select id="sim-tz-select" class="max-w-[260px] px-2 py-1 rounded-lg bg-[#FFFDF9] border border-[#C2E5EA] text-[#382A23] focus:outline-none focus:border-[#E29557] cursor-pointer">
+            <option value="auto">自動偵測</option>
+          </select>
+          <button type="button" data-preset="now" class="px-3 py-1 rounded-lg bg-[#FFFDF9] border border-[#C2E5EA] font-medium text-[#214E57] hover:bg-[#C2E5EA]/60 transition cursor-pointer">即時現在</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== 3. 主區域：乾淨 2 欄團體卡片 ==================== -->
+  <main class="max-w-[1120px] mx-auto px-4 sm:px-6 py-8 sm:py-10">
+    <div id="tour-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- JS 動態渲染極簡團體卡片 -->
+    </div>
+  </main>
+
+  <!-- ==================== 4. 右側滑出式抽屜：完整雙時區時間軸 ==================== -->
+  <div id="drawer-backdrop" class="fixed inset-0 z-40 hidden bg-[#382A23]/30 backdrop-blur-[1px] transition-opacity"></div>
+
+  <aside id="detail-drawer" class="fixed top-0 right-0 z-50 h-full w-full max-w-2xl translate-x-full bg-[#FFFDF9] border-l border-[#EADBC8] flex flex-col">
+    <!-- 抽屜暖奶油表頭 -->
+    <div class="px-6 py-4 bg-[#FDEBD6] border-b border-[#EADBC8] flex items-start justify-between gap-4 shrink-0">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-2">
+          <span id="drawer-dot" class="w-2.5 h-2.5 rounded-full shrink-0"></span>
+          <h2 id="drawer-code" class="text-base font-semibold text-[#382A23] tracking-tight"></h2>
+          <span id="drawer-status" class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#FFFDF9] text-[#7A685E] border border-[#EADBC8]"></span>
+        </div>
+        <div class="flex items-center gap-2 mt-1.5">
+          <p id="drawer-subtitle" class="text-xs text-[#7A685E] truncate cursor-pointer hover:text-[#382A23]" title="點擊編輯團體路線名稱"></p>
+          <button id="drawer-edit-tour-btn" type="button" class="text-[11px] font-medium text-[#CC5E3E] hover:underline shrink-0 cursor-pointer">編輯資訊</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="drawer-toggle-add-btn" type="button" class="px-3 py-1.5 rounded-lg text-xs font-medium text-[#FFFDF9] bg-[#CC5E3E] hover:bg-[#B84F31] transition cursor-pointer">
+          ＋ 新增行程
+        </button>
+        <button id="drawer-del-tour-btn" type="button" class="px-2.5 py-1.5 rounded-lg text-xs font-medium text-[#7A685E] hover:text-[#CC5E3E] hover:bg-[#FFFDF9]/70 transition cursor-pointer">
+          刪除
+        </button>
+        <button id="drawer-close-btn" type="button" class="w-8 h-8 rounded-lg flex items-center justify-center text-[#7A685E] hover:text-[#382A23] hover:bg-[#FFFDF9]/70 transition cursor-pointer" aria-label="關閉">
+          ✕
+        </button>
+      </div>
+    </div>
+
+    <!-- 刪除團體內嵌確認列 -->
+    <div id="drawer-del-confirm" class="hidden px-6 py-2.5 bg-[#FFF4F0] border-b border-[#CC5E3E]/30 flex items-center justify-between gap-2 text-xs shrink-0">
+      <span class="text-[#CC5E3E] font-medium">確定要永久刪除此團體的所有行程嗎？</span>
+      <div class="flex items-center gap-2">
+        <button id="drawer-del-cancel" type="button" class="px-2.5 py-1 rounded-md bg-[#FFFDF9] border border-[#EADBC8] text-[#7A685E] cursor-pointer">取消</button>
+        <button id="drawer-del-ok" type="button" class="px-2.5 py-1 rounded-md bg-[#CC5E3E] text-[#FFFDF9] font-medium hover:bg-[#B84F31] cursor-pointer">確認刪除</button>
+      </div>
+    </div>
+
+    <!-- 編輯團體基本資訊表單（預設收合） -->
+    <div id="drawer-edit-tour-form" class="hidden px-6 py-4 bg-[#FBF1E4] border-b border-[#EADBC8] space-y-3 shrink-0">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold text-[#382A23]">編輯團體資訊</span>
+        <button id="tour-info-cancel" type="button" class="text-xs text-[#7A685E] hover:text-[#382A23] cursor-pointer">取消</button>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+        <div>
+          <label class="block text-[11px] text-[#7A685E] mb-1">團號 *</label>
+          <input id="edit-tour-code" type="text" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-[#7A685E] mb-1">團體 / 路線名稱（顯示於卡片）</label>
+          <input id="edit-tour-name" type="text" placeholder="自由填寫或留空" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]" />
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button id="tour-info-save" type="button" class="px-4 py-1.5 rounded-lg bg-[#CC5E3E] text-[#FFFDF9] text-xs font-medium hover:bg-[#B84F31] cursor-pointer">
+          儲存變更
+        </button>
+      </div>
+    </div>
+
+    <!-- 新增 / 編輯單筆項目表單（預設收合） -->
+    <div id="drawer-add-form" class="hidden px-6 py-4 bg-[#FBF1E4] border-b border-[#EADBC8] space-y-3 shrink-0">
+      <div class="flex items-center justify-between">
+        <span id="drawer-form-heading" class="text-xs font-semibold text-[#382A23]">新增行程 / 航班項目</span>
+        <button id="drawer-form-cancel" type="button" class="text-xs text-[#7A685E] hover:text-[#382A23] cursor-pointer">取消</button>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+        <div>
+          <label class="block text-[11px] text-[#7A685E] mb-1">當地日期</label>
+          <input id="item-date" type="date" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-[#7A685E] mb-1">開始時間</label>
+          <input id="item-start" type="time" value="09:00" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-[#7A685E] mb-1">結束時間</label>
+          <input id="item-end" type="time" value="12:00" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-[#7A685E] mb-1">類型</label>
+          <select id="item-type" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]">
+            <option value="tour">景點 / 行程</option>
+            <option value="flight">✈️ 航班</option>
+            <option value="train">🚂 火車</option>
+            <option value="boat">🚢 遊船</option>
+            <option value="meal">🍽️ 餐食</option>
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-[#7A685E] mb-1">出發 / 當地城市</label>
+          <select id="item-city" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]"></select>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-[#7A685E] mb-1">抵達城市（跨時區航班才需選）</label>
+          <select id="item-endcity" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]"></select>
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-[#7A685E] mb-1">行程 / 航班名稱 *</label>
+          <input id="item-title" type="text" placeholder="例如：LA-2061 LIM → CUZ" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]" />
+        </div>
+        <div class="col-span-2 flex items-end gap-2">
+          <div class="flex-1">
+            <label class="block text-[11px] text-[#7A685E] mb-1">當晚住宿（選填）</label>
+            <input id="item-hotel" type="text" placeholder="飯店名稱" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#E29557]" />
+          </div>
+          <button id="item-save-btn" type="button" class="px-3.5 py-1.5 rounded-lg bg-[#CC5E3E] text-[#FFFDF9] font-medium hover:bg-[#B84F31] cursor-pointer shrink-0">
+            儲存
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 班機延誤 / 改時快速調整面板（預設收合） -->
+    <div id="drawer-delay-form" class="hidden px-6 py-4 bg-[#FFF4F0] border-b border-[#CC5E3E]/30 space-y-3 shrink-0">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="px-1.5 py-0.5 rounded bg-[#CC5E3E] text-[#FFFDF9] text-[10px] font-semibold shrink-0">延誤 / 改時</span>
+          <span id="delay-form-title" class="text-xs font-semibold text-[#382A23] truncate"></span>
+        </div>
+        <div class="flex items-center gap-3 text-xs shrink-0">
+          <a id="delay-lookup-google" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-[#214E57] hover:text-[#CC5E3E] font-medium">Google 動態 ↗</a>
+          <a id="delay-lookup-fr24" href="#" target="_blank" rel="noopener noreferrer" class="hidden text-[#214E57] hover:text-[#CC5E3E] font-medium">FR24 ↗</a>
+          <button id="delay-form-cancel" type="button" class="text-[#7A685E] hover:text-[#382A23] cursor-pointer">取消</button>
+        </div>
+      </div>
+
+      <!-- 原定時間參考與快捷延誤鈕 -->
+      <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <span id="delay-orig-ref" class="text-[11px] text-[#7A685E] tabular-nums"></span>
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button type="button" data-add-delay="30" class="px-2 py-1 rounded-md bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] hover:border-[#CC5E3E] hover:text-[#CC5E3E] transition cursor-pointer">+30分</button>
+          <button type="button" data-add-delay="60" class="px-2 py-1 rounded-md bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] hover:border-[#CC5E3E] hover:text-[#CC5E3E] transition cursor-pointer">+1時</button>
+          <button type="button" data-add-delay="120" class="px-2 py-1 rounded-md bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] hover:border-[#CC5E3E] hover:text-[#CC5E3E] transition cursor-pointer">+2時</button>
+          <button type="button" data-add-delay="180" class="px-2 py-1 rounded-md bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] hover:border-[#CC5E3E] hover:text-[#CC5E3E] transition cursor-pointer">+3時</button>
+          <button id="delay-reset-btn" type="button" class="px-2 py-1 rounded-md bg-[#FDEBD6] text-[#7A685E] hover:text-[#382A23] transition cursor-pointer">恢復原定</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-xs">
+        <div class="col-span-2">
+          <label class="block text-[11px] text-[#7A685E] mb-1">新出發日期</label>
+          <input id="delay-date" type="date" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#CC5E3E]" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-[#7A685E] mb-1">新出發時間</label>
+          <input id="delay-start" type="time" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#CC5E3E]" />
+        </div>
+        <div>
+          <label class="block text-[11px] text-[#7A685E] mb-1">新抵達時間</label>
+          <input id="delay-end" type="time" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#CC5E3E]" />
+        </div>
+        <div class="col-span-2">
+          <label class="block text-[11px] text-[#7A685E] mb-1">抵達跨日</label>
+          <select id="delay-offset" class="w-full px-2.5 py-1.5 rounded-lg bg-[#FFFDF9] border border-[#EADBC8] text-[#382A23] focus:outline-none focus:border-[#CC5E3E]">
+            <option value="0">當日抵達</option>
+            <option value="1">隔日抵達 (+1天)</option>
+          </select>
+        </div>
+        <div class="col-span-2 sm:col-span-6 flex justify-end">
+          <button id="delay-save-btn" type="button" class="px-4 py-1.5 rounded-lg bg-[#CC5E3E] text-[#FFFDF9] font-medium hover:bg-[#B84F31] cursor-pointer shrink-0">
+            套用新時間
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 雙時區表頭 -->
+    <div class="px-6 py-2 bg-[#FBF1E4]/70 border-b border-[#EADBC8] grid grid-cols-12 gap-2 text-[11px] font-medium text-[#7A685E] shrink-0">
+      <div class="col-span-3">當地時間</div>
+      <div id="drawer-ref-tz-col" class="col-span-3">對應台北時間</div>
+      <div class="col-span-6">行程與航班內容</div>
+    </div>
+
+    <!-- 抽屜行程列表 -->
+    <div id="drawer-timeline-body" class="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+      <!-- JS 動態渲染 -->
+    </div>
+  </aside>
+
+  <!-- 極簡暖調 Toast 提示 -->
+  <div id="toast-box" class="fixed bottom-5 right-5 z-[60] flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ==================== 核心腳本 ==================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ===================================================================
+         1. 基礎設定與 IANA 時區字典（地名以英文／西文原名為主）
+         =================================================================== */
+      const TAIPEI_TZ = 'Asia/Taipei';
+      const STORAGE_KEY = 'latam_monitor_prod_v1';
+
+      // ★ 上傳 GitHub 前，請把 Google Apps Script 部署後的「網頁應用程式網址」貼在下方單引號內
+      // 範例：const DATA_SOURCE_URL = 'https://script.google.com/macros/s/AKfycbxxxx.../exec';
+      const DATA_SOURCE_URL = 'https://script.google.com/macros/s/AKfycby4YLUZ_dTgZBS9VQhL7wfQyCkBNahSvm_ErAuMQhFt1MclH2R8LRoucu90X3HrXDRP/exec';
+
+      function detectUserTimezone() {
+        try {
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          if (tz) return tz;
+        } catch (err) {
+          console.warn('無法偵測裝置時區，預設使用台北時間', err);
+        }
+        return TAIPEI_TZ;
+      }
+
+      function getTzDisplayName(tz) {
+        if (!tz || tz === TAIPEI_TZ) return '台北';
+        if (tz === 'Etc/GMT+12') return 'UTC-12';
+        if (tz === 'Pacific/Easter') return 'Easter Island';
+        const parts = tz.split('/');
+        return parts[parts.length - 1].replace(/_/g, ' ');
+      }
+
+      const DETECTED_TZ = detectUserTimezone();
+
+      // 依團號前綴自動指定代表色（LIM、MEX、ABC、其他）
+      function getTourColor(code) {
+        const prefix = String(code || '').trim().toUpperCase();
+        if (prefix.startsWith('LIM')) return '#CC5E3E'; // 赤陶磚紅
+        if (prefix.startsWith('MEX')) return '#E29557'; // 暖杏琥珀
+        if (prefix.startsWith('ABC')) return '#214E57'; // 深晴青灰
+        return '#8F6A56';                               // 其他：暖大地棕
+      }
+
+      const CITIES = {
+        'Taipei':           { tz: 'Asia/Taipei' },
+        'Los Angeles':      { tz: 'America/Los_Angeles' },
+        'Dubai':            { tz: 'Asia/Dubai' },
+        'Lima':             { tz: 'America/Lima' },
+        'Paracas':          { tz: 'America/Lima' },
+        'Cuzco':            { tz: 'America/Lima' },
+        'Agua Caliente':    { tz: 'America/Lima' },
+        'Puerto Maldonado': { tz: 'America/Lima' },
+        'Arequipa':         { tz: 'America/Lima' },
+        'Chivay':           { tz: 'America/Lima' },
+        'Puno':             { tz: 'America/Lima' },
+        'La Paz':           { tz: 'America/La_Paz' },
+        'Uyuni':            { tz: 'America/La_Paz' },
+        'Santa Cruz':       { tz: 'America/La_Paz' },
+        'Santiago':         { tz: 'America/Santiago' },
+        'Paine':            { tz: 'America/Punta_Arenas' },
+        'Easter Island':    { tz: 'Pacific/Easter' },
+        'São Paulo':        { tz: 'America/Sao_Paulo' },
+        'Rio de Janeiro':   { tz: 'America/Sao_Paulo' },
+        'Iguassu':          { tz: 'America/Sao_Paulo' },
+        'Manaus':           { tz: 'America/Manaus' },
+        'Buenos Aires':     { tz: 'America/Argentina/Buenos_Aires' },
+        'Ushuaia':          { tz: 'America/Argentina/Ushuaia' },
+        'El Calafate':      { tz: 'America/Argentina/Rio_Gallegos' },
+        'Mexico City':      { tz: 'America/Mexico_City' },
+        'Cancun':           { tz: 'America/Cancun' },
+        'Bogota':           { tz: 'America/Bogota' },
+        'Quito':            { tz: 'America/Guayaquil' }
+      };
+
+      const CITY_ALIASES = {
+        '台北': 'Taipei', '洛杉磯': 'Los Angeles', '杜拜': 'Dubai',
+        '利馬': 'Lima', '帕拉卡斯': 'Paracas', '庫斯科': 'Cuzco', '熱水鎮': 'Agua Caliente',
+        '馬丘比丘': 'Agua Caliente', '馬爾多納多港': 'Puerto Maldonado', '阿雷基帕': 'Arequipa',
+        '普諾': 'Puno', '拉巴斯': 'La Paz', '烏尤尼': 'Uyuni', '聖克魯斯': 'Santa Cruz',
+        '聖地牙哥': 'Santiago', '百內國家公園': 'Paine', '百內': 'Paine', '復活節島': 'Easter Island',
+        '聖保羅': 'São Paulo', '里約熱內盧': 'Rio de Janeiro', '里約': 'Rio de Janeiro',
+        '伊瓜蘇': 'Iguassu', '馬瑙斯': 'Manaus', '布宜諾斯艾利斯': 'Buenos Aires',
+        '烏斯懷亞': 'Ushuaia', '卡拉法特': 'El Calafate', '墨西哥城': 'Mexico City',
+        '坎昆': 'Cancun', '波哥大': 'Bogota', '基多': 'Quito'
+      };
+
+      const AIRPORT_TO_CITY = {
+        TPE: 'Taipei', LAX: 'Los Angeles', DXB: 'Dubai',
+        LIM: 'Lima', CUZ: 'Cuzco', JUL: 'Puno', PEM: 'Puerto Maldonado', AQP: 'Arequipa',
+        LPB: 'La Paz', UYU: 'Uyuni', VVI: 'Santa Cruz',
+        SCL: 'Santiago', PNT: 'Paine', IPC: 'Easter Island',
+        GRU: 'São Paulo', MAO: 'Manaus', GIG: 'Rio de Janeiro', IGU: 'Iguassu', IGR: 'Iguassu',
+        AEP: 'Buenos Aires', EZE: 'Buenos Aires', USH: 'Ushuaia', FTE: 'El Calafate',
+        MEX: 'Mexico City', CUN: 'Cancun', BOG: 'Bogota', UIO: 'Quito'
+      };
+
+      // 全球代表性時區（用於時間模擬選單，動態依即時 UTC 偏移量排序）
+      const WORLD_TIMEZONES = [
+        { tz: 'Etc/GMT+12',                   label: 'International Date Line West' },
+        { tz: 'Pacific/Pago_Pago',            label: 'Pago Pago' },
+        { tz: 'Pacific/Honolulu',             label: 'Honolulu' },
+        { tz: 'America/Anchorage',            label: 'Anchorage' },
+        { tz: 'America/Los_Angeles',          label: 'Los Angeles' },
+        { tz: 'America/Denver',               label: 'Denver' },
+        { tz: 'America/Mexico_City',          label: 'Mexico City' },
+        { tz: 'Pacific/Easter',               label: 'Easter Island' },
+        { tz: 'America/New_York',             label: 'New York' },
+        { tz: 'America/Lima',                 label: 'Lima / Cuzco' },
+        { tz: 'America/La_Paz',               label: 'La Paz / Uyuni' },
+        { tz: 'America/Manaus',               label: 'Manaus' },
+        { tz: 'America/Santiago',             label: 'Santiago' },
+        { tz: 'America/Sao_Paulo',            label: 'São Paulo / Rio' },
+        { tz: 'America/Argentina/Buenos_Aires', label: 'Buenos Aires' },
+        { tz: 'Atlantic/South_Georgia',       label: 'South Georgia' },
+        { tz: 'Atlantic/Azores',              label: 'Azores' },
+        { tz: 'Europe/London',                label: 'London' },
+        { tz: 'Europe/Paris',                 label: 'Paris / Madrid' },
+        { tz: 'Europe/Athens',                label: 'Athens / Cairo' },
+        { tz: 'Europe/Istanbul',              label: 'Istanbul' },
+        { tz: 'Asia/Dubai',                   label: 'Dubai' },
+        { tz: 'Asia/Karachi',                 label: 'Karachi' },
+        { tz: 'Asia/Kolkata',                 label: 'Kolkata' },
+        { tz: 'Asia/Dhaka',                   label: 'Dhaka' },
+        { tz: 'Asia/Bangkok',                 label: 'Bangkok' },
+        { tz: 'Asia/Taipei',                  label: '台北 (Taipei)' },
+        { tz: 'Asia/Tokyo',                   label: 'Tokyo / Seoul' },
+        { tz: 'Australia/Adelaide',           label: 'Adelaide' },
+        { tz: 'Australia/Sydney',             label: 'Sydney' },
+        { tz: 'Pacific/Guadalcanal',          label: 'Guadalcanal' },
+        { tz: 'Pacific/Auckland',             label: 'Auckland' },
+        { tz: 'Pacific/Apia',                 label: 'Apia' },
+        { tz: 'Pacific/Kiritimati',           label: 'Kiritimati' }
+      ];
+
+      function normalizeCity(name) {
+        if (!name) return 'Lima';
+        const trimmed = String(name).trim();
+        if (CITIES[trimmed]) return trimmed;
+        if (CITY_ALIASES[trimmed]) return CITY_ALIASES[trimmed];
+        const upper = trimmed.toUpperCase();
+        if (AIRPORT_TO_CITY[upper]) return AIRPORT_TO_CITY[upper];
+        return 'Lima';
+      }
+
+      /* ===================================================================
+         2. 精準 IANA 時區引擎（自動處理 DST 與跨時區航班）
+         =================================================================== */
+      function pad2(n) { return String(n).padStart(2, '0'); }
+
+      function getTzOffsetMinutes(tz, utcDate) {
+        try {
+          const fmt = new Intl.DateTimeFormat('en-US', {
+            timeZone: tz,
+            year: 'numeric', month: '2-digit', day: '2-digit',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hourCycle: 'h23'
+          });
+          const p = {};
+          fmt.formatToParts(utcDate).forEach(part => {
+            if (part.type !== 'literal') p[part.type] = parseInt(part.value, 10);
+          });
+          const h = p.hour === 24 ? 0 : p.hour;
+          const asUtc = Date.UTC(p.year, p.month - 1, p.day, h, p.minute, p.second);
+          return Math.round((asUtc - utcDate.getTime()) / 60000);
+        } catch (err) {
+          return 0;
+        }
+      }
+
+      function zonedTimeToUtcMs(dateStr, timeStr, tz) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const guess = Date.UTC(y, m - 1, d, hh, mm, 0);
+        const off1 = getTzOffsetMinutes(tz, new Date(guess));
+        const utc1 = guess - off1 * 60000;
+        const off2 = getTzOffsetMinutes(tz, new Date(utc1));
+        return guess - off2 * 60000;
+      }
+
+      function formatInTz(ms, tz) {
+        const dt = new Date(ms);
+        const fmt = new Intl.DateTimeFormat('en-US', {
+          timeZone: tz,
+          year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+          weekday: 'short', hourCycle: 'h23'
+        });
+        const p = {};
+        fmt.formatToParts(dt).forEach(part => {
+          if (part.type !== 'literal') p[part.type] = part.value;
+        });
+        const wkMap = { Sun: '週日', Mon: '週一', Tue: '週二', Wed: '週三', Thu: '週四', Fri: '週五', Sat: '週六' };
+        const hourNum = parseInt(p.hour === '24' ? '0' : p.hour, 10);
+        const hh = pad2(hourNum);
+        return {
+          isoDate: `${p.year}-${p.month}-${p.day}`,
+          ymd: `${p.year}/${p.month}/${p.day}`,
+          md: `${p.month}/${p.day}`,
+          hm: `${hh}:${p.minute}`,
+          hms: `${hh}:${p.minute}:${p.second}`,
+          weekday: wkMap[p.weekday] || p.weekday,
+          hour: hourNum
+        };
+      }
+
+      function addDaysToIso(isoDate, deltaDays) {
+        const [y, m, d] = isoDate.split('-').map(Number);
+        const dt = new Date(Date.UTC(y, m - 1, d + deltaDays));
+        return `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`;
+      }
+
+      function diffDaysIso(isoA, isoB) {
+        const [ya, ma, da] = isoA.split('-').map(Number);
+        const [yb, mb, db] = isoB.split('-').map(Number);
+        return Math.round((Date.UTC(yb, mb - 1, db) - Date.UTC(ya, ma - 1, da)) / 86400000);
+      }
+
+      function formatUtcOffsetLabel(offsetMins) {
+        const sign = offsetMins >= 0 ? '+' : '-';
+        const abs = Math.abs(offsetMins);
+        const h = Math.floor(abs / 60);
+        const m = abs % 60;
+        return `UTC${sign}${pad2(h)}:${pad2(m)}`;
+      }
+
+      function formatDurationShort(ms) {
+        const totalMin = Math.max(0, Math.round(ms / 60000));
+        const d = Math.floor(totalMin / 1440);
+        const h = Math.floor((totalMin % 1440) / 60);
+        const m = totalMin % 60;
+        if (d > 0) return `${d}天${h}時`;
+        if (h > 0) return `${h}時${m}分`;
+        return `${m}分`;
+      }
+
+      function formatDelayDelta(mins) {
+        if (!mins || mins === 0) return '';
+        const sign = mins > 0 ? '+' : '-';
+        const abs = Math.abs(mins);
+        const h = Math.floor(abs / 60);
+        const m = abs % 60;
+        if (h > 0 && m > 0) return `${sign}${h}時${m}分`;
+        if (h > 0) return `${sign}${h}小時`;
+        return `${sign}${m}分`;
+      }
+
+      function extractFlightCode(title) {
+        const m = String(title || '').match(/\b([A-Z]{2}|G3)[\s-]?(\d{2,4})\b/i);
+        if (!m) return '';
+        return `${m[1].toUpperCase()}${m[2]}`;
+      }
+
+      function getFlightLookupUrls(code) {
+        if (!code) return null;
+        return {
+          google: `https://www.google.com/search?q=${encodeURIComponent(code + ' flight status')}`,
+          fr24: `https://www.flightradar24.com/data/flights/${encodeURIComponent(code.toLowerCase())}`
+        };
+      }
+
+      function shiftDateTime(dateStr, timeStr, addMins) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [hh, mm] = timeStr.split(':').map(Number);
+        const dt = new Date(Date.UTC(y, m - 1, d, hh, mm + addMins, 0));
+        return {
+          date: `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`,
+          time: `${pad2(dt.getUTCHours())}:${pad2(dt.getUTCMinutes())}`
+        };
+      }
+
+      function computeEventRange(ev) {
+        const startCity = normalizeCity(ev.city);
+        const endCity = normalizeCity(ev.endCity || ev.city);
+        const startTz = (CITIES[startCity] || CITIES['Lima']).tz;
+        const endTz = (CITIES[endCity] || CITIES[startCity] || CITIES['Lima']).tz;
+        const startMs = zonedTimeToUtcMs(ev.date, ev.start, startTz);
+        let endDate = ev.endDateOffset ? addDaysToIso(ev.date, ev.endDateOffset) : ev.date;
+        let endMs = zonedTimeToUtcMs(endDate, ev.end, endTz);
+        if (endMs <= startMs) {
+          endDate = addDaysToIso(endDate, 1);
+          endMs = zonedTimeToUtcMs(endDate, ev.end, endTz);
+        }
+        return { startMs, endMs, startTz, endTz, startCity, endCity };
+      }
+
+      function esc(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      /* ===================================================================
+         3. 狀態管理與雲端同步（正式版不內建任何私密行程資料）
+         =================================================================== */
+      function loadTours() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) return parsed;
+          }
+        } catch (err) {
+          console.warn('讀取本機快取失敗', err);
+        }
+        return [];
+      }
+
+      function saveTours(tours) {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(tours));
+        } catch (err) {
+          console.warn('儲存至 localStorage 失敗', err);
+        }
+      }
+
+      const state = {
+        tours: loadTours(),
+        filter: 'active',       // 'active' | 'all'
+        simOpen: false,
+        simMs: null,            // null = 即時
+        overrideTz: 'auto',     // 'auto' | IANA timezone string
+        drawerTourId: null,
+        editingItemId: null,
+        delayItemId: null,
+        lastSync: null,
+        isSyncing: false
+      };
+
+      // 更新頂部同步按鈕狀態文字
+      function updateSyncButtonUI() {
+        const label = document.getElementById('sync-label');
+        const icon = document.getElementById('sync-icon');
+        if (!label || !icon) return;
+        if (state.isSyncing) {
+          label.textContent = '同步中...';
+          icon.classList.add('animate-spin');
+          return;
+        }
+        icon.classList.remove('animate-spin');
+        if (!DATA_SOURCE_URL) {
+          label.textContent = '待設定網址';
+          return;
+        }
+        if (state.lastSync) {
+          const t = formatInTz(state.lastSync, getUserTz());
+          label.textContent = `已同步 ${t.hm}`;
+        } else {
+          label.textContent = '雲端同步';
+        }
+      }
+
+      // 從 Google Apps Script (Google Drive 同步端點) 拉取所有裝置共用的最新團體與航班資料
+      async function syncFromDrive(manual = false) {
+        if (!DATA_SOURCE_URL) {
+          updateSyncButtonUI();
+          if (manual) {
+            showToast('請先在程式碼第 306 行填入 Apps Script 網頁應用程式網址');
+          }
+          return;
+        }
+        if (state.isSyncing) return;
+        state.isSyncing = true;
+        updateSyncButtonUI();
+        if (state.tours.length === 0) renderAll();
+        try {
+          const url = DATA_SOURCE_URL + (DATA_SOURCE_URL.includes('?') ? '&' : '?') + 't=' + Date.now();
+          const res = await fetch(url, { cache: 'no-store' });
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const payload = await res.json();
+          if (payload && Array.isArray(payload.tours)) {
+            state.tours = payload.tours;
+            state.lastSync = payload.updatedAt ? new Date(payload.updatedAt).getTime() : Date.now();
+            saveTours(state.tours);
+            renderAll();
+            if (manual) showToast(`已同步最新資料（共 ${state.tours.length} 團）`);
+          }
+        } catch (err) {
+          console.error('Google Drive 同步失敗:', err);
+          if (manual) showToast('雲端同步失敗，請檢查網路或 Apps Script 權限');
+        } finally {
+          state.isSyncing = false;
+          updateSyncButtonUI();
+        }
+      }
+
+      // 若同事在看板上手動調整延誤或修改團體名稱，立即同步寫回 Google Drive 共用快取
+      async function pushUpdateToDrive() {
+        if (!DATA_SOURCE_URL) return;
+        try {
+          await fetch(DATA_SOURCE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify({ action: 'saveTours', tours: state.tours })
+          });
+          state.lastSync = Date.now();
+          updateSyncButtonUI();
+        } catch (err) {
+          console.warn('寫回雲端共用快取失敗:', err);
+        }
+      }
+
+      function getUserTz() {
+        return state.overrideTz && state.overrideTz !== 'auto' ? state.overrideTz : DETECTED_TZ;
+      }
+
+      function isInTaipei() {
+        return getUserTz() === TAIPEI_TZ;
+      }
+
+      function getUserTzLabel() {
+        return getTzDisplayName(getUserTz());
+      }
+
+      function getNowMs() {
+        return state.simMs !== null ? state.simMs : Date.now();
+      }
+
+      function showToast(msg) {
+        const box = document.getElementById('toast-box');
+        const el = document.createElement('div');
+        el.className = 'px-4 py-2 rounded-xl text-xs font-medium bg-[#382A23] text-[#FFFDF9] shadow-sm transition-all duration-300 opacity-0 translate-y-1';
+        el.textContent = msg;
+        box.appendChild(el);
+        requestAnimationFrame(() => el.classList.remove('opacity-0', 'translate-y-1'));
+        setTimeout(() => {
+          el.classList.add('opacity-0', 'translate-y-1');
+          setTimeout(() => el.remove(), 300);
+        }, 2400);
+      }
+
+      /* ===================================================================
+         5. 團體狀態分析引擎（精準行程優先，無明確時間則 09:00–18:00 顯示大綱）
+         =================================================================== */
+      function analyzeTour(tour, baseMs) {
+        const computed = (tour.events || [])
+          .map(e => ({ ...e, ...computeEventRange(e) }))
+          .sort((a, b) => a.startMs - b.startMs);
+
+        if (computed.length === 0) {
+          return {
+            status: 'upcoming',
+            badgeText: '未排程',
+            currentCity: 'Lima',
+            currentTz: 'America/Lima',
+            currentEvent: null,
+            nextEvent: null,
+            hotel: '',
+            computed: []
+          };
+        }
+
+        const first = computed[0];
+        const last = computed[computed.length - 1];
+
+        let status = 'active';
+        if (baseMs < first.startMs) status = 'upcoming';
+        else if (baseMs > last.endMs) status = 'ended';
+
+        // 精準事件優先於大綱事件（確保 12:00–13:30 午餐、18:00–19:30 晚餐與班機／火車優先顯示）
+        const activeSpecific = computed.filter(e => !e.isOverview && baseMs >= e.startMs && baseMs <= e.endMs);
+        let currentEvent = null;
+        if (activeSpecific.length > 0) {
+          const priority = { flight: 1, train: 2, boat: 3, meal: 4, tour: 5 };
+          activeSpecific.sort((a, b) => (priority[a.type] || 9) - (priority[b.type] || 9));
+          currentEvent = activeSpecific[0];
+        } else {
+          // 當地 09:00–18:00 且非午晚餐時段才顯示簡表今日大綱
+          const activeOverview = computed.find(e => e.isOverview && baseMs >= e.startMs && baseMs <= e.endMs);
+          if (activeOverview) {
+            const loc = formatInTz(baseMs, activeOverview.startTz);
+            const inLunchWindow = loc.hm >= '12:00' && loc.hm < '13:30';
+            const inDinnerWindow = loc.hm >= '18:00' && loc.hm < '19:30';
+            if (!inLunchWindow && !inDinnerWindow) {
+              currentEvent = activeOverview;
+            }
+          }
+        }
+
+        const nextEvent = computed.find(e => e.startMs > baseMs && !e.isOverview)
+          || computed.find(e => e.startMs > baseMs)
+          || null;
+        const pastEvents = computed.filter(e => e.endMs <= baseMs);
+        const lastPast = pastEvents.length ? pastEvents[pastEvents.length - 1] : null;
+
+        let currentCity = first.startCity;
+        let currentTz = first.startTz;
+        if (currentEvent) {
+          currentCity = currentEvent.startCity;
+          currentTz = currentEvent.startTz;
+        } else if (lastPast) {
+          currentCity = lastPast.endCity;
+          currentTz = lastPast.endTz;
+        } else if (nextEvent) {
+          currentCity = nextEvent.startCity;
+          currentTz = nextEvent.startTz;
+        }
+
+        const localNow = formatInTz(baseMs, currentTz);
+        let dayNum = diffDaysIso(tour.startDate || first.date, localNow.isoDate) + 1;
+        const totalDays = Math.max(1, diffDaysIso(tour.startDate || first.date, tour.endDate || last.date) + 1);
+        dayNum = Math.max(1, Math.min(totalDays, dayNum));
+
+        let badgeText = `Day ${dayNum}`;
+        if (status === 'upcoming') badgeText = '未出發';
+        else if (status === 'ended') badgeText = '已結束';
+
+        // 抓取當晚住宿
+        const todayWithHotel = computed.find(e => e.date === localNow.isoDate && e.hotel);
+        const hotel = (currentEvent && currentEvent.hotel)
+          || (todayWithHotel && todayWithHotel.hotel)
+          || (lastPast && lastPast.hotel)
+          || (nextEvent && nextEvent.hotel)
+          || '';
+
+        return {
+          status, badgeText,
+          currentCity, currentTz,
+          currentEvent, nextEvent,
+          hotel, computed
+        };
+      }
+
+      /* ===================================================================
+         6. 畫面渲染：頂部時鐘、篩選膠囊、2 欄極簡團體卡片
+         =================================================================== */
+      function renderHeaderAndClocks() {
+        const baseMs = getNowMs();
+        const userTz = getUserTz();
+        const userNow = formatInTz(baseMs, userTz);
+        const userLabel = getUserTzLabel();
+
+        document.getElementById('local-tz-label').textContent = userLabel;
+        document.getElementById('taipei-date-text').textContent = `${userNow.ymd} (${userNow.weekday})`;
+        document.getElementById('taipei-time-text').textContent = userNow.hms;
+        document.getElementById('sim-tz-label').textContent = `${userLabel}基準時間`;
+        document.getElementById('drawer-ref-tz-col').textContent = `對應${userLabel}時間`;
+
+        // 位於台北以外國家時，在旁低調保留台北參考時間
+        const secWrap = document.getElementById('taipei-secondary-clock');
+        if (!isInTaipei()) {
+          const tpeNow = formatInTz(baseMs, TAIPEI_TZ);
+          document.getElementById('taipei-sec-text').textContent = `${tpeNow.md} ${tpeNow.hm}`;
+          secWrap.classList.remove('hidden');
+        } else {
+          secWrap.classList.add('hidden');
+        }
+
+        const isSim = state.simMs !== null;
+        document.getElementById('sim-badge').classList.toggle('hidden', !isSim);
+        const dot = document.getElementById('live-dot');
+        dot.className = isSim
+          ? 'w-2.5 h-2.5 rounded-full bg-[#E29557] shrink-0'
+          : 'w-2.5 h-2.5 rounded-full bg-[#CC5E3E] shrink-0';
+
+        // 同步時間模擬輸入框（非聚焦時）
+        const dtInput = document.getElementById('sim-datetime-input');
+        if (state.simOpen && document.activeElement !== dtInput) {
+          dtInput.value = `${userNow.isoDate}T${userNow.hm}`;
+        }
+      }
+
+      function renderAll() {
+        const baseMs = getNowMs();
+        renderHeaderAndClocks();
+
+        const analyzed = state.tours.map(tour => ({
+          tour,
+          info: analyzeTour(tour, baseMs)
+        }));
+
+        const order = { active: 0, upcoming: 1, ended: 2 };
+        analyzed.sort((a, b) => {
+          if (order[a.info.status] !== order[b.info.status]) return order[a.info.status] - order[b.info.status];
+          return (a.tour.startDate || '').localeCompare(b.tour.startDate || '');
+        });
+
+        const activeCount = analyzed.filter(x => x.info.status === 'active').length;
+        const totalCount = analyzed.length;
+
+        // 渲染頂部篩選膠囊
+        document.getElementById('filter-segment').innerHTML = `
+          <button type="button" data-filter="active" class="px-3 py-1 rounded-full font-medium transition cursor-pointer ${state.filter === 'active' ? 'bg-[#C2E5EA] text-[#214E57]' : 'text-[#7A685E] hover:text-[#382A23]'}">進行中 (${activeCount})</button>
+          <button type="button" data-filter="all" class="px-3 py-1 rounded-full font-medium transition cursor-pointer ${state.filter === 'all' ? 'bg-[#C2E5EA] text-[#214E57]' : 'text-[#7A685E] hover:text-[#382A23]'}">全部 (${totalCount})</button>
+        `;
+
+        const visible = state.filter === 'active'
+          ? analyzed.filter(x => x.info.status === 'active')
+          : analyzed;
+
+        const grid = document.getElementById('tour-grid');
+
+        if (visible.length === 0) {
+          if (!DATA_SOURCE_URL) {
+            grid.innerHTML = `
+              <div class="md:col-span-2 py-16 px-6 rounded-2xl bg-[#FFFDF9] border border-[#EADBC8] text-center">
+                <p class="text-sm font-semibold text-[#382A23]">尚未連結 Google Drive 同步網址</p>
+                <p class="text-xs text-[#7A685E] mt-1.5">請打開此 HTML 檔，將 Google Apps Script 部署後的「網頁應用程式網址」貼入 <code class="px-1.5 py-0.5 rounded bg-[#FDEBD6] text-[#CC5E3E]">DATA_SOURCE_URL</code>，即可自動同步各團行程。</p>
+              </div>
+            `;
+          } else if (state.isSyncing && totalCount === 0) {
+            grid.innerHTML = `
+              <div class="md:col-span-2 py-16 px-6 rounded-2xl bg-[#FFFDF9] border border-[#EADBC8] text-center">
+                <p class="text-sm font-medium text-[#214E57]">正在從 Google Drive 同步最新出團行程...</p>
+              </div>
+            `;
+          } else if (totalCount === 0) {
+            grid.innerHTML = `
+              <div class="md:col-span-2 py-16 px-6 rounded-2xl bg-[#FFFDF9] border border-[#EADBC8] text-center">
+                <p class="text-sm font-medium text-[#382A23]">目前雲端尚未有已同步的團體行程</p>
+                <p class="text-xs text-[#7A685E] mt-1.5">請確認 Google Drive 資料夾已上傳行程表，並在 Apps Script 執行過一次 <code class="px-1.5 py-0.5 rounded bg-[#FDEBD6] text-[#382A23]">dailySyncFromDrive</code>。</p>
+              </div>
+            `;
+          } else {
+            grid.innerHTML = `
+              <div class="md:col-span-2 py-16 px-6 rounded-2xl bg-[#FFFDF9] border border-[#EADBC8] text-center">
+                <p class="text-sm font-medium text-[#382A23]">目前沒有正在進行中的團體</p>
+                <p class="text-xs text-[#7A685E] mt-1.5">可切換至「全部 (${totalCount})」查看未出發或已結束團體，或使用上方「時間模擬」預覽出團日期。</p>
+                <button type="button" id="empty-show-all-btn" class="mt-4 px-4 py-1.5 rounded-lg bg-[#C2E5EA] text-[#214E57] text-xs font-medium hover:bg-[#B2DCE3] transition cursor-pointer">
+                  查看全部團體
+                </button>
+              </div>
+            `;
+          }
+        } else {
+          const userTz = getUserTz();
+          const userLabel = getUserTzLabel();
+          const refOffset = getTzOffsetMinutes(userTz, new Date(baseMs));
+
+          grid.innerHTML = visible.map(({ tour, info }) => {
+            const local = formatInTz(baseMs, info.currentTz);
+            const locOffset = getTzOffsetMinutes(info.currentTz, new Date(baseMs));
+            const diffHrs = Math.round(((locOffset - refOffset) / 60) * 10) / 10;
+            const diffLabel = diffHrs === 0
+              ? `與${userLabel}同時間`
+              : diffHrs < 0 ? `比${userLabel}慢 ${Math.abs(diffHrs)} 小時` : `比${userLabel}快 ${diffHrs} 小時`;
+
+            const isDay = local.hour >= 6 && local.hour < 18;
+            const dayNightIcon = isDay
+              ? `<span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-[#E8F5F7] text-[#214E57] text-xs" title="當地白天">☀</span>`
+              : `<span class="inline-flex items-center justify-center w-6 h-6 rounded-md bg-[#FDEBD6] text-[#7A685E] text-xs" title="當地夜間">☾</span>`;
+
+            const badgeClass = info.status === 'active'
+              ? 'bg-[#C2E5EA] text-[#214E57]'
+              : 'bg-[#FDEBD6] text-[#7A685E]';
+
+            // 狀態區塊：僅在「行程／班機／餐食／今日大綱進行中」顯示；首末行程外與空檔完全不顯示
+            let statusBoxHtml = '';
+            if (info.status === 'active' && info.currentEvent) {
+              const c = info.currentEvent;
+              if (c.isOverview) {
+                statusBoxHtml = `
+                  <div class="mt-5 p-4 rounded-xl bg-[#E8F5F7] border-l-[3px] border-[#C2E5EA]">
+                    <div class="flex items-center justify-between text-xs text-[#214E57] mb-1.5">
+                      <span class="font-medium">今日大綱</span>
+                      <span class="text-[11px] opacity-80">${esc(c.startCity)}</span>
+                    </div>
+                    <p class="text-[15px] font-semibold text-[#382A23] leading-snug">${esc(c.title)}</p>
+                  </div>`;
+              } else {
+                const isDelayed = c.flightStatus === 'delayed';
+                const isChanged = c.flightStatus === 'changed';
+                const isAdjusted = isDelayed || isChanged;
+                const fltCode = c.type === 'flight' ? extractFlightCode(c.title) : '';
+                const lookup = getFlightLookupUrls(fltCode);
+
+                const typeLabel = c.type === 'flight'
+                  ? '航班飛行中'
+                  : c.type === 'train'
+                    ? '火車行駛中'
+                    : c.type === 'boat' ? '遊船進行中' : c.type === 'meal' ? '用餐中' : '行程進行中';
+
+                const delayBadge = isAdjusted
+                  ? `<span class="px-1.5 py-0.5 rounded bg-[#CC5E3E] text-[#FFFDF9] text-[10px] font-semibold">${isDelayed && c.delayMinutes > 0 ? `延誤 ${formatDelayDelta(c.delayMinutes)}` : '改時'}</span>`
+                  : '';
+
+                const timeRangeStr = c.endCity && c.endCity !== c.startCity
+                  ? `${c.startCity} ${c.start} → ${c.endCity} ${c.end}${c.endDateOffset ? '+1' : ''}`
+                  : `${c.start} – ${c.end}${c.endDateOffset ? '+1' : ''}`;
+
+                const origTimeHtml = isAdjusted && c.origStart
+                  ? `<span class="line-through text-[#A39287] mr-1.5">原 ${esc(c.origStart)}–${esc(c.origEnd)}</span>`
+                  : '';
+
+                const pct = Math.min(100, Math.max(3, Math.round(((baseMs - c.startMs) / Math.max(1, c.endMs - c.startMs)) * 100)));
+
+                const flightQuickTools = (c.type === 'flight' || c.type === 'train') ? `
+                  <div class="mt-2 flex items-center justify-end gap-2.5 text-[11px]">
+                    ${lookup ? `<a href="${lookup.google}" target="_blank" rel="noopener noreferrer" data-stop-card="1" class="text-[#214E57] hover:text-[#CC5E3E] font-medium">查動態 ↗</a>` : ''}
+                    <button type="button" data-card-delay-tour="${tour.id}" data-card-delay-item="${c.id}" class="text-[#CC5E3E] hover:underline font-medium cursor-pointer">${isAdjusted ? '修改延誤' : '延誤/改時'}</button>
+                  </div>` : '';
+
+                const boxBg = isAdjusted
+                  ? 'bg-[#FFF4F0] border-[#CC5E3E]'
+                  : (c.type === 'flight' || c.type === 'train')
+                    ? 'bg-[#E8F5F7] border-[#CC5E3E]'
+                    : 'bg-[#E8F5F7] border-[#C2E5EA]';
+
+                statusBoxHtml = `
+                  <div class="mt-5 p-4 rounded-xl ${boxBg} border-l-[3px]">
+                    <div class="flex flex-wrap items-center justify-between gap-1.5 text-xs ${isAdjusted ? 'text-[#CC5E3E]' : 'text-[#214E57]'} mb-1.5">
+                      <span class="inline-flex items-center gap-1.5 font-medium">${typeLabel} ${delayBadge}</span>
+                      <span class="tabular-nums">${origTimeHtml}${esc(timeRangeStr)}</span>
+                    </div>
+                    <p class="text-[15px] font-semibold text-[#382A23] leading-snug">${esc(c.title)}</p>
+                    <div class="mt-3 h-1.5 w-full rounded-full ${isAdjusted ? 'bg-[#CC5E3E]/20' : 'bg-[#C2E5EA]'} overflow-hidden">
+                      <div class="h-full rounded-full ${isAdjusted ? 'bg-[#CC5E3E]' : 'bg-[#E29557]'}" style="width:${pct}%"></div>
+                    </div>
+                    ${flightQuickTools}
+                  </div>`;
+              }
+            }
+
+            // 下一項提醒與倒數
+            let nextHtml = `<span class="text-[#A39287]">無後續排程</span>`;
+            if (info.nextEvent) {
+              const n = info.nextEvent;
+              const remainMs = n.startMs - baseMs;
+              const isSoon = remainMs <= 6 * 3600000;
+              const nDelayed = n.flightStatus === 'delayed' || n.flightStatus === 'changed';
+              const nDelayTag = nDelayed
+                ? `<span class="px-1 py-0.5 rounded bg-[#CC5E3E]/15 text-[#CC5E3E] text-[10px] font-semibold mr-1">${n.flightStatus === 'delayed' && n.delayMinutes > 0 ? `延誤 ${formatDelayDelta(n.delayMinutes)}` : '改時'}</span>`
+                : '';
+              const nFlt = n.type === 'flight' ? extractFlightCode(n.title) : '';
+              const nLookup = getFlightLookupUrls(nFlt);
+
+              nextHtml = `
+                <div class="flex items-baseline justify-between gap-3">
+                  <span class="text-xs text-[#7A685E] truncate">
+                    下一項：${nDelayTag}<span class="tabular-nums">${n.date.slice(5).replace('-', '/')} ${n.start}</span> ${esc(n.title)}
+                  </span>
+                  <span class="text-xs font-medium tabular-nums shrink-0 ${isSoon || nDelayed ? 'text-[#CC5E3E]' : 'text-[#E29557]'}">${formatDurationShort(remainMs)}後</span>
+                </div>
+                ${(n.type === 'flight' || n.type === 'train') ? `
+                  <div class="mt-1 flex items-center justify-end gap-2.5 text-[11px]">
+                    ${nLookup ? `<a href="${nLookup.google}" target="_blank" rel="noopener noreferrer" data-stop-card="1" class="text-[#214E57] hover:text-[#CC5E3E]">查動態 ↗</a>` : ''}
+                    <button type="button" data-card-delay-tour="${tour.id}" data-card-delay-item="${n.id}" class="text-[#CC5E3E] hover:underline cursor-pointer">${nDelayed ? '修改延誤' : '延誤/改時'}</button>
+                  </div>` : ''}`;
+            }
+
+            return `
+              <article data-open-tour="${tour.id}" class="group rounded-2xl bg-[#FFFDF9] border border-[#EADBC8] hover:border-[#E29557] p-6 transition-colors cursor-pointer flex flex-col justify-between">
+                <div>
+                  <!-- 1. 團號標題與天數膠囊 -->
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-2 min-w-0">
+                      <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color:${getTourColor(tour.code)}"></span>
+                      <span class="text-sm font-semibold text-[#382A23] tracking-tight shrink-0">${esc(tour.code)}</span>
+                      ${tour.name ? `<span class="text-xs text-[#7A685E] truncate">· ${esc(tour.name)}</span>` : ''}
+                    </div>
+                    <span class="px-2.5 py-0.5 rounded-full text-[11px] font-medium shrink-0 ${badgeClass}">${esc(info.badgeText)}</span>
+                  </div>
+
+                  <!-- 2. 當地日期（大時鐘上方）與大時鐘、城市時差 -->
+                  <div class="mt-5 flex items-end justify-between gap-4">
+                    <div>
+                      <div class="text-[15px] font-semibold text-[#214E57] tabular-nums mb-1">${local.md} (${local.weekday})</div>
+                      <div class="flex items-center gap-2.5">
+                        <span class="text-[42px] leading-none font-semibold tracking-tight text-[#382A23] tabular-nums">${local.hm}</span>
+                        ${dayNightIcon}
+                      </div>
+                    </div>
+                    <div class="text-right pb-0.5">
+                      <div class="text-sm font-semibold text-[#382A23]">${esc(info.currentCity)}</div>
+                      <div class="text-xs text-[#7A685E] mt-0.5 tabular-nums">${diffLabel}</div>
+                    </div>
+                  </div>
+
+                  <!-- 3. 此刻狀態區塊（有行程才顯示） -->
+                  ${statusBoxHtml}
+                </div>
+
+                <!-- 4. 底部下一項提醒與當晚住宿 -->
+                <div class="mt-5 pt-4 border-t border-[#EADBC8]/80 space-y-1.5">
+                  ${nextHtml}
+                  <div class="flex items-center justify-between gap-3 text-xs">
+                    <span class="text-[#A39287] truncate">${info.hotel ? `住宿：${esc(info.hotel)}` : ''}</span>
+                    <span class="text-[#7A685E] group-hover:text-[#CC5E3E] font-medium shrink-0 transition-colors">完整時間軸 →</span>
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join('');
+        }
+
+        if (state.drawerTourId) {
+          renderDrawer();
+        }
+      }
+
+      /* ===================================================================
+         7. 右側滑出式抽屜：雙時區時間軸、編輯資訊、延誤改時
+         =================================================================== */
+      function openDrawer(tourId) {
+        state.drawerTourId = tourId;
+        state.editingItemId = null;
+        state.delayItemId = null;
+        document.getElementById('drawer-add-form').classList.add('hidden');
+        document.getElementById('drawer-edit-tour-form').classList.add('hidden');
+        document.getElementById('drawer-delay-form').classList.add('hidden');
+        document.getElementById('drawer-del-confirm').classList.add('hidden');
+
+        renderDrawer();
+        document.getElementById('drawer-backdrop').classList.remove('hidden');
+        requestAnimationFrame(() => {
+          document.getElementById('detail-drawer').classList.remove('translate-x-full');
+        });
+      }
+
+      function closeDrawer() {
+        document.getElementById('detail-drawer').classList.add('translate-x-full');
+        document.getElementById('drawer-backdrop').classList.add('hidden');
+        state.drawerTourId = null;
+        state.editingItemId = null;
+        state.delayItemId = null;
+      }
+
+      function renderDrawer() {
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        if (!tour) { closeDrawer(); return; }
+
+        const baseMs = getNowMs();
+        const userTz = getUserTz();
+        const info = analyzeTour(tour, baseMs);
+
+        document.getElementById('drawer-dot').style.backgroundColor = getTourColor(tour.code);
+        document.getElementById('drawer-code').textContent = tour.code;
+        document.getElementById('drawer-status').textContent = info.badgeText;
+
+        const subtitleText = (tour.name || '').trim();
+        const subtitleEl = document.getElementById('drawer-subtitle');
+        subtitleEl.textContent = subtitleText || '尚未填寫團體路線名稱';
+        subtitleEl.classList.toggle('italic', !subtitleText);
+        subtitleEl.classList.toggle('text-[#A39287]', !subtitleText);
+        subtitleEl.classList.toggle('text-[#7A685E]', Boolean(subtitleText));
+
+        const body = document.getElementById('drawer-timeline-body');
+        if (info.computed.length === 0) {
+          body.innerHTML = `<p class="text-xs text-[#A39287] text-center py-10">尚無行程項目，請點右上角「＋ 新增行程」。</p>`;
+          return;
+        }
+
+        // 依當地日期分組
+        const groups = {};
+        info.computed.forEach(e => {
+          if (!groups[e.date]) groups[e.date] = [];
+          groups[e.date].push(e);
+        });
+
+        const sortedDates = Object.keys(groups).sort();
+        const baseStartDate = tour.startDate || sortedDates[0];
+
+        body.innerHTML = sortedDates.map(date => {
+          const dayItems = groups[date];
+          const dayNum = diffDaysIso(baseStartDate, date) + 1;
+          const dayHotel = (dayItems.find(x => x.hotel) || {}).hotel || '';
+
+          const rowsHtml = dayItems.map(e => {
+            const isCur = info.currentEvent && info.currentEvent.id === e.id;
+            const isPast = e.endMs < baseMs && !isCur;
+            const isAdjusted = e.flightStatus === 'delayed' || e.flightStatus === 'changed';
+
+            const refStart = formatInTz(e.startMs, userTz);
+            const refEnd = formatInTz(e.endMs, userTz);
+            const dayDiff = diffDaysIso(e.date, refStart.isoDate);
+            const dayDiffTag = dayDiff > 0 ? `+${dayDiff}天` : dayDiff < 0 ? `${dayDiff}天` : '';
+
+            const fltCode = e.type === 'flight' ? extractFlightCode(e.title) : '';
+            const lookup = getFlightLookupUrls(fltCode);
+            const delayTag = isAdjusted
+              ? (e.flightStatus === 'delayed' && e.delayMinutes > 0 ? `延誤 ${formatDelayDelta(e.delayMinutes)}` : '改時')
+              : '';
+
+            const localTimeCol = e.isOverview
+              ? `<div class="font-medium text-[#214E57]">今日大綱</div>
+                 <div class="text-[11px] text-[#A39287] mt-0.5">${esc(e.startCity)} · 09:00–18:00</div>`
+              : `<div class="font-medium tabular-nums ${isAdjusted ? 'text-[#CC5E3E]' : 'text-[#382A23]'}">${e.start}–${e.end}${e.endDateOffset ? '+1' : ''}</div>
+                 ${isAdjusted && e.origStart ? `<div class="text-[10px] text-[#A39287] line-through tabular-nums">原 ${esc(e.origStart)}–${esc(e.origEnd)}</div>` : ''}
+                 <div class="text-[11px] text-[#A39287] mt-0.5">${esc(e.startCity)}${e.endCity && e.endCity !== e.startCity ? ` → ${esc(e.endCity)}` : ''}</div>`;
+
+            const refTimeCol = e.isOverview
+              ? `<div class="text-[11px] text-[#A39287]">09:00–18:00（跳過午晚餐）</div>`
+              : `<div class="tabular-nums ${isAdjusted ? 'text-[#CC5E3E] font-medium' : 'text-[#7A685E]'}">
+                   ${refStart.md} ${refStart.hm} ${dayDiffTag ? `<span class="text-[10px] text-[#CC5E3E] ml-0.5">${dayDiffTag}</span>` : ''}
+                 </div>
+                 <div class="text-[11px] text-[#A39287] tabular-nums mt-0.5">至 ${refEnd.hm}</div>`;
+
+            const actionBtnsHtml = `
+              <div class="flex items-center gap-2 shrink-0 text-[11px]">
+                ${lookup ? `<a href="${lookup.google}" target="_blank" rel="noopener noreferrer" class="text-[#214E57] hover:text-[#CC5E3E]">查班機↗</a>` : ''}
+                ${(e.type === 'flight' || e.type === 'train') ? `<button type="button" data-delay-item="${e.id}" class="text-[#CC5E3E] hover:underline cursor-pointer">改時</button>` : ''}
+                <button type="button" data-edit-item="${e.id}" class="text-[#7A685E] hover:text-[#382A23] cursor-pointer">編輯</button>
+                <button type="button" data-del-item="${e.id}" class="text-[#A39287] hover:text-[#CC5E3E] cursor-pointer">刪除</button>
+              </div>`;
+
+            const rowHighlight = isAdjusted
+              ? 'bg-[#FFF4F0] border-l-[3px] border-[#CC5E3E] pl-3 pr-2 rounded-r-lg'
+              : isCur
+                ? 'bg-[#E8F5F7] border-l-[3px] border-[#E29557] pl-3 pr-2 rounded-r-lg'
+                : 'pl-3 pr-2';
+
+            return `
+              <div class="py-2.5 grid grid-cols-12 gap-2 items-start text-xs ${rowHighlight} ${isPast ? 'opacity-55' : ''}">
+                <div class="col-span-3">${localTimeCol}</div>
+                <div class="col-span-3">${refTimeCol}</div>
+                <div class="col-span-6 flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <div class="font-medium text-[#382A23] leading-snug">
+                      ${esc(e.title)}
+                      ${isCur && !e.isOverview ? `<span class="ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#CC5E3E] text-[#FFFDF9]">進行中</span>` : ''}
+                      ${delayTag ? `<span class="ml-1 inline-block px-1.5 py-0.5 rounded text-[10px] font-medium bg-[#CC5E3E]/15 text-[#CC5E3E] border border-[#CC5E3E]/30">${esc(delayTag)}</span>` : ''}
+                    </div>
+                  </div>
+                  ${actionBtnsHtml}
+                </div>
+              </div>`;
+          }).join('');
+
+          return `
+            <section>
+              <div class="pb-2 mb-1 border-b border-[#EADBC8]">
+                <div class="flex items-baseline gap-2">
+                  <span class="text-xs font-semibold text-[#382A23]">Day ${dayNum}</span>
+                  <span class="text-xs text-[#7A685E] tabular-nums">${date.slice(5).replace('-', '/')}</span>
+                </div>
+                ${dayHotel ? `<div class="text-[11px] text-[#7A685E] mt-1">宿：${esc(dayHotel)}</div>` : ''}
+              </div>
+              <div class="divide-y divide-[#EADBC8]/50">
+                ${rowsHtml}
+              </div>
+            </section>`;
+        }).join('');
+      }
+
+      /* ===================================================================
+         8. 選單初始化與表單操作（團體資訊、單筆行程、班機延誤／改時）
+         =================================================================== */
+      function populateCitySelects() {
+        const names = Object.keys(CITIES);
+        const startSel = document.getElementById('item-city');
+        const endSel = document.getElementById('item-endcity');
+        startSel.innerHTML = names.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+        endSel.innerHTML = `<option value="">（同出發城市）</option>` + names.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+      }
+
+      function populateSimTzSelect() {
+        const sel = document.getElementById('sim-tz-select');
+        const now = new Date(getNowMs());
+        const detectedOff = getTzOffsetMinutes(DETECTED_TZ, now);
+        const detectedLabel = `${getTzDisplayName(DETECTED_TZ)} (${formatUtcOffsetLabel(detectedOff)})`;
+
+        const sorted = WORLD_TIMEZONES
+          .map(item => ({ ...item, offset: getTzOffsetMinutes(item.tz, now) }))
+          .sort((a, b) => a.offset - b.offset || a.label.localeCompare(b.label));
+
+        sel.innerHTML = `<option value="auto">自動偵測：${esc(detectedLabel)}</option>` +
+          sorted.map(item => `<option value="${esc(item.tz)}">${formatUtcOffsetLabel(item.offset)} · ${esc(item.label)}</option>`).join('');
+        sel.value = state.overrideTz || 'auto';
+      }
+
+      function openTourInfoForm() {
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        if (!tour) return;
+        document.getElementById('drawer-add-form').classList.add('hidden');
+        document.getElementById('drawer-delay-form').classList.add('hidden');
+        document.getElementById('drawer-del-confirm').classList.add('hidden');
+
+        document.getElementById('edit-tour-code').value = tour.code || '';
+        document.getElementById('edit-tour-name').value = tour.name || '';
+        document.getElementById('drawer-edit-tour-form').classList.remove('hidden');
+      }
+
+      function saveTourInfoForm() {
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        if (!tour) return;
+        const newCode = document.getElementById('edit-tour-code').value.trim();
+        const newName = document.getElementById('edit-tour-name').value.trim();
+        if (!newCode) {
+          showToast('請輸入團號');
+          return;
+        }
+        tour.code = newCode;
+        tour.name = newName;
+        tour.color = getTourColor(newCode);
+        saveTours(state.tours);
+        pushUpdateToDrive();
+        document.getElementById('drawer-edit-tour-form').classList.add('hidden');
+        renderAll();
+        showToast('已更新團體資訊');
+      }
+
+      function openItemForm(item) {
+        document.getElementById('drawer-edit-tour-form').classList.add('hidden');
+        document.getElementById('drawer-delay-form').classList.add('hidden');
+        document.getElementById('drawer-del-confirm').classList.add('hidden');
+
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        const defaultDate = (tour && tour.startDate) || formatInTz(getNowMs(), TAIPEI_TZ).isoDate;
+
+        state.editingItemId = item ? item.id : null;
+        document.getElementById('drawer-form-heading').textContent = item ? '編輯行程 / 航班項目' : '新增行程 / 航班項目';
+        document.getElementById('item-date').value = item ? item.date : defaultDate;
+        document.getElementById('item-start').value = item ? item.start : '09:00';
+        document.getElementById('item-end').value = item ? item.end : '12:00';
+        document.getElementById('item-type').value = item ? item.type : 'tour';
+        document.getElementById('item-city').value = item ? normalizeCity(item.city) : 'Lima';
+        document.getElementById('item-endcity').value = item && item.endCity && item.endCity !== item.city ? normalizeCity(item.endCity) : '';
+        document.getElementById('item-title').value = item ? item.title : '';
+        document.getElementById('item-hotel').value = item ? (item.hotel || '') : '';
+
+        document.getElementById('drawer-add-form').classList.remove('hidden');
+      }
+
+      function saveItemForm() {
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        if (!tour) return;
+
+        const date = document.getElementById('item-date').value;
+        const start = document.getElementById('item-start').value;
+        const end = document.getElementById('item-end').value;
+        const type = document.getElementById('item-type').value;
+        const city = document.getElementById('item-city').value;
+        const endCity = document.getElementById('item-endcity').value || undefined;
+        const title = document.getElementById('item-title').value.trim();
+        const hotel = document.getElementById('item-hotel').value.trim();
+
+        if (!date || !start || !end || !title) {
+          showToast('請填寫日期、起訖時間與行程名稱');
+          return;
+        }
+
+        if (state.editingItemId) {
+          const idx = tour.events.findIndex(x => x.id === state.editingItemId);
+          if (idx >= 0) {
+            tour.events[idx] = { ...tour.events[idx], date, start, end, type, city, endCity, title, hotel, isOverview: false };
+          }
+          showToast('已更新項目');
+        } else {
+          tour.events.push({
+            id: 'ev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+            date, start, end, type, city, endCity, endDateOffset: 0, title, hotel
+          });
+          showToast('已新增項目');
+        }
+
+        const dates = tour.events.map(x => x.date).sort();
+        if (dates.length) {
+          tour.startDate = dates[0];
+          tour.endDate = dates[dates.length - 1];
+        }
+
+        saveTours(state.tours);
+        pushUpdateToDrive();
+        document.getElementById('drawer-add-form').classList.add('hidden');
+        state.editingItemId = null;
+        renderAll();
+      }
+
+      function openDelayForm(itemId) {
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        if (!tour) return;
+        const item = tour.events.find(x => x.id === itemId);
+        if (!item) return;
+
+        document.getElementById('drawer-add-form').classList.add('hidden');
+        document.getElementById('drawer-edit-tour-form').classList.add('hidden');
+        document.getElementById('drawer-del-confirm').classList.add('hidden');
+
+        state.delayItemId = item.id;
+        const origDate = item.origDate || item.date;
+        const origStart = item.origStart || item.start;
+        const origEnd = item.origEnd || item.end;
+        const origOffset = item.origEndDateOffset !== undefined ? item.origEndDateOffset : (item.endDateOffset || 0);
+
+        document.getElementById('delay-form-title').textContent = item.title;
+        document.getElementById('delay-orig-ref').textContent = `原定：${origDate.slice(5).replace('-', '/')} ${origStart}–${origEnd}${origOffset ? '+1' : ''}`;
+        document.getElementById('delay-date').value = item.date;
+        document.getElementById('delay-start').value = item.start || origStart;
+        document.getElementById('delay-end').value = item.end || origEnd;
+        document.getElementById('delay-offset').value = String(item.endDateOffset || 0);
+
+        const fltCode = item.type === 'flight' ? extractFlightCode(item.title) : '';
+        const lookup = getFlightLookupUrls(fltCode);
+        const gLink = document.getElementById('delay-lookup-google');
+        const fLink = document.getElementById('delay-lookup-fr24');
+        if (lookup) {
+          gLink.href = lookup.google;
+          fLink.href = lookup.fr24;
+          gLink.classList.remove('hidden');
+          fLink.classList.remove('hidden');
+        } else {
+          gLink.classList.add('hidden');
+          fLink.classList.add('hidden');
+        }
+
+        document.getElementById('drawer-delay-form').classList.remove('hidden');
+      }
+
+      function applyDelayPresetMinutes(addMins) {
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        if (!tour || !state.delayItemId) return;
+        const item = tour.events.find(x => x.id === state.delayItemId);
+        if (!item) return;
+
+        const curDate = document.getElementById('delay-date').value || item.date;
+        const curStart = document.getElementById('delay-start').value || item.start;
+        const curEnd = document.getElementById('delay-end').value || item.end;
+        const curOffset = parseInt(document.getElementById('delay-offset').value || '0', 10);
+
+        const shiftedStart = shiftDateTime(curDate, curStart, addMins);
+        const endBaseDate = curOffset ? addDaysToIso(curDate, curOffset) : curDate;
+        const shiftedEnd = shiftDateTime(endBaseDate, curEnd, addMins);
+        const newOffset = Math.max(0, diffDaysIso(shiftedStart.date, shiftedEnd.date));
+
+        document.getElementById('delay-date').value = shiftedStart.date;
+        document.getElementById('delay-start').value = shiftedStart.time;
+        document.getElementById('delay-end').value = shiftedEnd.time;
+        document.getElementById('delay-offset').value = String(Math.min(1, newOffset));
+      }
+
+      function resetDelayToOriginal() {
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        if (!tour || !state.delayItemId) return;
+        const item = tour.events.find(x => x.id === state.delayItemId);
+        if (!item) return;
+
+        if (item.origDate) item.date = item.origDate;
+        if (item.origStart) item.start = item.origStart;
+        if (item.origEnd) item.end = item.origEnd;
+        if (item.origEndDateOffset !== undefined) item.endDateOffset = item.origEndDateOffset;
+
+        delete item.flightStatus;
+        delete item.delayMinutes;
+        delete item.origDate;
+        delete item.origStart;
+        delete item.origEnd;
+        delete item.origEndDateOffset;
+
+        saveTours(state.tours);
+        pushUpdateToDrive();
+        document.getElementById('drawer-delay-form').classList.add('hidden');
+        state.delayItemId = null;
+        renderAll();
+        showToast('已恢復原定航班時間');
+      }
+
+      function saveDelayForm() {
+        const tour = state.tours.find(t => t.id === state.drawerTourId);
+        if (!tour || !state.delayItemId) return;
+        const item = tour.events.find(x => x.id === state.delayItemId);
+        if (!item) return;
+
+        const newDate = document.getElementById('delay-date').value;
+        const newStart = document.getElementById('delay-start').value;
+        const newEnd = document.getElementById('delay-end').value;
+        const newOffset = parseInt(document.getElementById('delay-offset').value || '0', 10);
+
+        if (!newDate || !newStart || !newEnd) {
+          showToast('請輸入完整的新出發與抵達時間');
+          return;
+        }
+
+        if (!item.origStart) {
+          item.origDate = item.date;
+          item.origStart = item.start;
+          item.origEnd = item.end;
+          item.origEndDateOffset = item.endDateOffset || 0;
+        }
+
+        const startTz = (CITIES[normalizeCity(item.city)] || CITIES['Lima']).tz;
+        const origMs = zonedTimeToUtcMs(item.origDate, item.origStart, startTz);
+        const newMs = zonedTimeToUtcMs(newDate, newStart, startTz);
+        const diffMins = Math.round((newMs - origMs) / 60000);
+
+        item.date = newDate;
+        item.start = newStart;
+        item.end = newEnd;
+        item.endDateOffset = newOffset;
+        item.delayMinutes = diffMins;
+        item.flightStatus = diffMins > 0 ? 'delayed' : 'changed';
+
+        saveTours(state.tours);
+        pushUpdateToDrive();
+        document.getElementById('drawer-delay-form').classList.add('hidden');
+        state.delayItemId = null;
+        renderAll();
+        showToast('已套用新班機時間並重算時差');
+      }
+
+      /* ===================================================================
+         9. 互動事件綁定與啟動
+         =================================================================== */
+      function bindEvents() {
+        // 雲端同步按鈕
+        document.getElementById('sync-drive-btn').addEventListener('click', () => {
+          syncFromDrive(true);
+        });
+
+        // 篩選膠囊
+        document.getElementById('filter-segment').addEventListener('click', e => {
+          const btn = e.target.closest('[data-filter]');
+          if (!btn) return;
+          state.filter = btn.dataset.filter;
+          renderAll();
+        });
+
+        // 卡片區點擊（開抽屜、延誤快捷、空白狀態切全部）
+        document.getElementById('tour-grid').addEventListener('click', e => {
+          if (e.target.closest('[data-stop-card]')) return;
+          const emptyBtn = e.target.closest('#empty-show-all-btn');
+          if (emptyBtn) {
+            state.filter = 'all';
+            renderAll();
+            return;
+          }
+          const delayBtn = e.target.closest('[data-card-delay-tour]');
+          if (delayBtn) {
+            e.stopPropagation();
+            openDrawer(delayBtn.dataset.cardDelayTour);
+            openDelayForm(delayBtn.dataset.cardDelayItem);
+            return;
+          }
+          const card = e.target.closest('[data-open-tour]');
+          if (card) openDrawer(card.dataset.openTour);
+        });
+
+        // 時間模擬收合與操作
+        document.getElementById('toggle-sim-btn').addEventListener('click', () => {
+          state.simOpen = !state.simOpen;
+          document.getElementById('simulator-strip').classList.toggle('hidden', !state.simOpen);
+          if (state.simOpen) {
+            populateSimTzSelect();
+            renderHeaderAndClocks();
+          }
+        });
+
+        document.getElementById('sim-datetime-input').addEventListener('change', e => {
+          const v = e.target.value;
+          if (!v) return;
+          const [d, t] = v.split('T');
+          if (d && t) {
+            state.simMs = zonedTimeToUtcMs(d, t.slice(0, 5), getUserTz());
+            renderAll();
+          }
+        });
+
+        document.getElementById('sim-tz-select').addEventListener('change', e => {
+          state.overrideTz = e.target.value || 'auto';
+          renderAll();
+        });
+
+        document.getElementById('simulator-strip').addEventListener('click', e => {
+          const stepBtn = e.target.closest('[data-step]');
+          if (stepBtn) {
+            const hrs = parseInt(stepBtn.dataset.step, 10);
+            state.simMs = getNowMs() + hrs * 3600000;
+            renderAll();
+            return;
+          }
+          const presetBtn = e.target.closest('[data-preset="now"]');
+          if (presetBtn) {
+            state.simMs = null;
+            state.overrideTz = 'auto';
+            document.getElementById('sim-tz-select').value = 'auto';
+            renderAll();
+            showToast('已恢復即時現在與自動偵測時區');
+          }
+        });
+
+        // 抽屜關閉
+        document.getElementById('drawer-close-btn').addEventListener('click', closeDrawer);
+        document.getElementById('drawer-backdrop').addEventListener('click', closeDrawer);
+
+        // 抽屜編輯團體基本資訊
+        document.getElementById('drawer-edit-tour-btn').addEventListener('click', openTourInfoForm);
+        document.getElementById('drawer-subtitle').addEventListener('click', openTourInfoForm);
+        document.getElementById('tour-info-cancel').addEventListener('click', () => {
+          document.getElementById('drawer-edit-tour-form').classList.add('hidden');
+        });
+        document.getElementById('tour-info-save').addEventListener('click', saveTourInfoForm);
+
+        // 抽屜新增／儲存單筆行程
+        document.getElementById('drawer-toggle-add-btn').addEventListener('click', () => openItemForm(null));
+        document.getElementById('drawer-form-cancel').addEventListener('click', () => {
+          document.getElementById('drawer-add-form').classList.add('hidden');
+          state.editingItemId = null;
+        });
+        document.getElementById('item-save-btn').addEventListener('click', saveItemForm);
+
+        // 抽屜刪除團體
+        document.getElementById('drawer-del-tour-btn').addEventListener('click', () => {
+          document.getElementById('drawer-del-confirm').classList.toggle('hidden');
+        });
+        document.getElementById('drawer-del-cancel').addEventListener('click', () => {
+          document.getElementById('drawer-del-confirm').classList.add('hidden');
+        });
+        document.getElementById('drawer-del-ok').addEventListener('click', () => {
+          state.tours = state.tours.filter(t => t.id !== state.drawerTourId);
+          saveTours(state.tours);
+          pushUpdateToDrive();
+          closeDrawer();
+          renderAll();
+          showToast('已刪除團體');
+        });
+
+        // 抽屜延誤／改時表單
+        document.getElementById('delay-form-cancel').addEventListener('click', () => {
+          document.getElementById('drawer-delay-form').classList.add('hidden');
+          state.delayItemId = null;
+        });
+        document.getElementById('drawer-delay-form').addEventListener('click', e => {
+          const btn = e.target.closest('[data-add-delay]');
+          if (btn) applyDelayPresetMinutes(parseInt(btn.dataset.addDelay, 10));
+        });
+        document.getElementById('delay-reset-btn').addEventListener('click', resetDelayToOriginal);
+        document.getElementById('delay-save-btn').addEventListener('click', saveDelayForm);
+
+        // 抽屜時間軸內操作（改時、編輯、刪除）
+        document.getElementById('drawer-timeline-body').addEventListener('click', e => {
+          const tour = state.tours.find(t => t.id === state.drawerTourId);
+          if (!tour) return;
+
+          const delayBtn = e.target.closest('[data-delay-item]');
+          if (delayBtn) {
+            openDelayForm(delayBtn.dataset.delayItem);
+            return;
+          }
+          const editBtn = e.target.closest('[data-edit-item]');
+          if (editBtn) {
+            const item = tour.events.find(x => x.id === editBtn.dataset.editItem);
+            if (item) openItemForm(item);
+            return;
+          }
+          const delBtn = e.target.closest('[data-del-item]');
+          if (delBtn) {
+            tour.events = tour.events.filter(x => x.id !== delBtn.dataset.delItem);
+            saveTours(state.tours);
+            pushUpdateToDrive();
+            renderAll();
+            showToast('已刪除該項目');
+          }
+        });
+      }
+
+      // 初始化啟動
+      populateCitySelects();
+      populateSimTzSelect();
+      bindEvents();
+      updateSyncButtonUI();
+      renderAll();
+      syncFromDrive(false);
+
+      // 每秒更新頂部時鐘；每 30 秒刷新卡片狀態；每 5 分鐘自動向雲端拉取最新航班與延誤異動
+      let tick = 0;
+      setInterval(() => {
+        tick++;
+        renderHeaderAndClocks();
+        if (tick % 30 === 0 && state.simMs === null) {
+          renderAll();
+        }
+        if (tick % 300 === 0) {
+          syncFromDrive(false);
+        }
+      }, 1000);
+    })();
+  </script>
+</body>
+</html>
