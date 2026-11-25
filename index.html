@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LATINOAMERICA TOUR</title>
+  <title>中南美出團監控看板</title>
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -67,7 +67,7 @@
       <!-- 左側：標題與即時主時鐘（自動偵測所在地時區） -->
       <div class="flex flex-wrap items-center gap-2.5 sm:gap-4 w-full sm:w-auto">
         <h1 class="text-lg sm:text-[15px] font-semibold tracking-tight text-[#382A23]">
-          LATINOAMERICA TOUR
+          中南美出團監控
         </h1>
         <div class="h-4 w-px bg-[#EADBC8] hidden sm:block"></div>
         <div class="inline-flex flex-wrap items-center gap-2 sm:gap-2.5 px-3.5 py-2 sm:py-1.5 rounded-xl bg-[#FDEBD6] border border-[#EADBC8] tabular-nums">
@@ -784,19 +784,27 @@
         // 精準事件優先於大綱事件（確保 12:00–13:30 午餐、18:00–19:30 晚餐與班機／火車優先顯示）
         const activeSpecific = computed.filter(e => !e.isOverview && baseMs >= e.startMs && baseMs <= e.endMs);
         let currentEvent = null;
+        let checkinFlight = null;
+
         if (activeSpecific.length > 0) {
           const priority = { flight: 1, train: 2, boat: 3, meal: 4, tour: 5 };
           activeSpecific.sort((a, b) => (priority[a.type] || 9) - (priority[b.type] || 9));
           currentEvent = activeSpecific[0];
         } else {
-          // 當地 09:00–18:00 且非午晚餐時段才顯示今日大綱
-          const activeOverview = computed.find(e => e.isOverview && baseMs >= e.startMs && baseMs <= e.endMs);
-          if (activeOverview) {
-            const loc = formatInTz(baseMs, activeOverview.startTz);
-            const inLunchWindow = loc.hm >= '12:00' && loc.hm < '13:30';
-            const inDinnerWindow = loc.hm >= '18:00' && loc.hm < '19:30';
-            if (!inLunchWindow && !inDinnerWindow) {
-              currentEvent = activeOverview;
+          // 檢查是否有「起飛前 2.5 小時（150 分鐘）內」的航班，優先顯示機場報到時間與班機資訊
+          const CHECKIN_LEAD_MS = 150 * 60 * 1000;
+          checkinFlight = computed.find(e => e.type === 'flight' && baseMs >= (e.startMs - CHECKIN_LEAD_MS) && baseMs < e.startMs) || null;
+
+          if (!checkinFlight) {
+            // 當地 09:00–18:00 且非午晚餐時段才顯示今日大綱
+            const activeOverview = computed.find(e => e.isOverview && baseMs >= e.startMs && baseMs <= e.endMs);
+            if (activeOverview) {
+              const loc = formatInTz(baseMs, activeOverview.startTz);
+              const inLunchWindow = loc.hm >= '12:00' && loc.hm < '13:30';
+              const inDinnerWindow = loc.hm >= '18:00' && loc.hm < '19:30';
+              if (!inLunchWindow && !inDinnerWindow) {
+                currentEvent = activeOverview;
+              }
             }
           }
         }
@@ -812,6 +820,9 @@
         if (currentEvent) {
           currentCity = currentEvent.startCity;
           currentTz = currentEvent.startTz;
+        } else if (checkinFlight) {
+          currentCity = checkinFlight.startCity;
+          currentTz = checkinFlight.startTz;
         } else if (lastPast) {
           currentCity = lastPast.endCity;
           currentTz = lastPast.endTz;
@@ -832,6 +843,7 @@
         // 抓取當晚住宿
         const todayWithHotel = computed.find(e => e.date === localNow.isoDate && e.hotel);
         const hotel = (currentEvent && currentEvent.hotel)
+          || (checkinFlight && checkinFlight.hotel)
           || (todayWithHotel && todayWithHotel.hotel)
           || (lastPast && lastPast.hotel)
           || (nextEvent && nextEvent.hotel)
@@ -840,7 +852,7 @@
         return {
           status, badgeText,
           currentCity, currentTz,
-          currentEvent, nextEvent,
+          currentEvent, checkinFlight, nextEvent,
           hotel, computed
         };
       }
@@ -968,9 +980,57 @@
               ? 'bg-[#C2E5EA] text-[#214E57]'
               : 'bg-[#FDEBD6] text-[#7A685E]';
 
-            // 狀態區塊：僅在「行程／班機／餐食／今日大綱進行中」顯示；首末行程外與空檔完全不顯示
+            // 狀態區塊：優先顯示「起飛前 2.5 小時機場報到」或「進行中行程／班機／餐食／今日大綱」
             let statusBoxHtml = '';
-            if (info.status === 'active' && info.currentEvent) {
+            if (info.checkinFlight) {
+              const f = info.checkinFlight;
+              const CHECKIN_LEAD_MS = 150 * 60 * 1000;
+              const checkinStartMs = f.startMs - CHECKIN_LEAD_MS;
+              const checkinLocal = formatInTz(checkinStartMs, f.startTz);
+              const isDelayed = f.flightStatus === 'delayed';
+              const isChanged = f.flightStatus === 'changed';
+              const isAdjusted = isDelayed || isChanged;
+              const fltCode = extractFlightCode(f.title);
+              const lookup = getFlightLookupUrls(fltCode);
+              const remainToTakeoff = Math.max(0, f.startMs - baseMs);
+
+              const delayBadge = isAdjusted
+                ? `<span class="px-2 sm:px-1.5 py-0.5 rounded bg-[#CC5E3E] text-[#FFFDF9] text-xs sm:text-[10px] font-semibold">${isDelayed && f.delayMinutes > 0 ? `延誤 ${formatDelayDelta(f.delayMinutes)}` : '改時'}</span>`
+                : '';
+
+              const flightTimeStr = f.endCity && f.endCity !== f.startCity
+                ? `${f.startCity} ${f.start} → ${f.endCity} ${f.end}${f.endDateOffset ? '+1' : ''}`
+                : `${f.start} – ${f.end}${f.endDateOffset ? '+1' : ''}`;
+
+              const origTimeHtml = isAdjusted && f.origStart
+                ? `<span class="line-through text-[#A39287] mr-1.5">原 ${esc(f.origStart)}–${esc(f.origEnd)}</span>`
+                : '';
+
+              const pct = Math.min(100, Math.max(3, Math.round(((baseMs - checkinStartMs) / CHECKIN_LEAD_MS) * 100)));
+
+              const flightQuickTools = `
+                <div class="mt-3 sm:mt-2.5 flex items-center justify-between gap-2 text-sm sm:text-[11px]">
+                  <span class="text-[#CC5E3E] font-semibold tabular-nums">${formatDurationShort(remainToTakeoff)}後起飛</span>
+                  <div class="flex items-center gap-4 sm:gap-3">
+                    ${lookup ? `<a href="${lookup.google}" target="_blank" rel="noopener noreferrer" data-stop-card="1" class="text-[#214E57] hover:text-[#CC5E3E] font-medium">查動態 ↗</a>` : ''}
+                    <button type="button" data-card-delay-tour="${tour.id}" data-card-delay-item="${f.id}" class="text-[#CC5E3E] hover:underline font-medium cursor-pointer">${isAdjusted ? '修改延誤' : '延誤/改時'}</button>
+                  </div>
+                </div>`;
+
+              statusBoxHtml = `
+                <div class="mt-5 p-4 rounded-xl ${isAdjusted ? 'bg-[#FFF4F0]' : 'bg-[#E8F5F7]'} border-l-[3px] border-[#CC5E3E]">
+                  <div class="flex flex-wrap items-center justify-between gap-1.5 text-base sm:text-xs text-[#CC5E3E] mb-1.5">
+                    <span class="inline-flex items-center gap-1.5 font-semibold">機場報到 / 候機中 ${delayBadge}</span>
+                    <span class="tabular-nums font-medium">報到 ${checkinLocal.hm} – ${f.start}</span>
+                  </div>
+                  <p class="text-lg sm:text-[15px] font-semibold text-[#382A23] leading-snug">${esc(f.title)}</p>
+                  <div class="text-sm sm:text-xs text-[#7A685E] tabular-nums mt-1">${origTimeHtml}航班時刻：${esc(flightTimeStr)}</div>
+                  <div class="mt-3 h-2 sm:h-1.5 w-full rounded-full bg-[#CC5E3E]/20 overflow-hidden">
+                    <div class="h-full rounded-full bg-[#CC5E3E]" style="width:${pct}%"></div>
+                  </div>
+                  ${flightQuickTools}
+                </div>`;
+            } else if (info.status === 'active' && info.currentEvent) {
               const c = info.currentEvent;
               if (c.isOverview) {
                 statusBoxHtml = `
